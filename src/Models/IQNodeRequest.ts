@@ -4,12 +4,13 @@
 import {JSON_OBJECT} from "./IJson";
 import {IQNodeEndpoint} from "./IQNodeEndpoint";
 
-export interface IQNodeRequest {
+export interface IQNodeRequest<ParsedBodyType = any> {
     body: {
         raw: string;
-        json?: JSON_OBJECT
+        parsed?: ParsedBodyType
     },
     headers: {
+        ContentType?: string;
         [key: string]: string;
     },
     timeout?: number,

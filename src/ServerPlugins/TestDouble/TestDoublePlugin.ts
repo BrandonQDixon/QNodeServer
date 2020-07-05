@@ -2,6 +2,7 @@ import {IQServerPlugin} from "../../Models/IQServerPlugin";
 import {IQNodeEndpoint} from "../../Models/IQNodeEndpoint";
 import {IQNodeRequest} from "../../Models/IQNodeRequest";
 import {IQNodeResponse} from "../../Models/IQNodeResponse";
+import {JSON_OBJECT} from "../../Models/IJson";
 
 interface ICallableEndpoint {
     metadata: IQNodeEndpoint;
@@ -37,11 +38,8 @@ export class TestDoublePlugin implements IQServerPlugin {
     /**
      * Test helper for testing an endpoint
      * This will directly return the endpoint's response, but the tester should also validate the response is sent in the normal flow as well
-     * @param verb
-     * @param path
-     * @param rawRequest
      */
-    testEndpoint(verb: string, path: string, rawRequest: any): Promise<IQNodeResponse> {
+    testEndpoint(verb: string, path: string, rawRequest: IQNodeRequest<JSON_OBJECT>): Promise<IQNodeResponse> {
         this.consoleOut("Testing endpoint: ", verb, path);
 
         const endpoint = this.endpoints.find(route => route.metadata.verb === verb && route.metadata.path === path);

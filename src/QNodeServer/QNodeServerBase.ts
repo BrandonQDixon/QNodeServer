@@ -25,7 +25,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
     initialize() {
         this._endpoints = this._endpoints || [];
         this._endpoints.forEach(endpoint => {
-            this.serverPlugin.createEndpoint(endpoint.metadata, this.executeEndpoint.bind(this, endpoint));
+            this.serverPlugin.createEndpoint(endpoint.metadata, (rawRequest: any) => this.executeEndpoint(endpoint, rawRequest));
         });
         this.serverPlugin.startServer(this.port);
         this.onServerInit();
@@ -33,6 +33,9 @@ export abstract class QNodeServerBase implements IQNodeServer {
 
     registerEndpointFromDecorator(endpointMetadata: IQNodeEndpoint, callbackMethod): void {
         this._endpoints = this._endpoints || [];
+        if (this.endpoints.find(searchEndpoint => QNodeServerBase.endpointsEqual(searchEndpoint.metadata, endpointMetadata))) {
+            throw new Error(`Error in endpoint register: endpoint already exists with ${endpointMetadata.verb} => ${endpointMetadata.path}`);
+        }
         this._endpoints.push({
             metadata: endpointMetadata,
             callback: callbackMethod
@@ -49,14 +52,20 @@ export abstract class QNodeServerBase implements IQNodeServer {
             throw new Error(`Error when triggering endpoint, none found matching metadata: ${request.endpointMetadata.verb} => ${request.endpointMetadata.path}`);
         }
 
-        return endpoint.callback(request);
+        return endpoint.callback.call(this, request);
     }
 
+    /**
+     * Callback from server plugin
+     * @param endpoint
+     * @param rawRequest
+     */
     private async executeEndpoint(endpoint: IQNodeConcreteEndpoint, rawRequest: any): Promise<IQNodeResponse> {
         const mappedRequest = this.serverPlugin.mapRequest(rawRequest);
-        await this.beforeEndpointTriggered(endpoint.metadata, mappedRequest);
-        const response = await this.triggerEndpoint(mappedRequest);
-        await this.afterEndpointTriggered(endpoint.metadata, mappedRequest, response);
+        const mappedRequestClone = JSON.parse(JSON.stringify(mappedRequest));
+        await this.beforeEndpointTriggered(endpoint.metadata, mappedRequestClone);
+        const response = await this.triggerEndpoint(mappedRequestClone);
+        await this.afterEndpointTriggered(endpoint.metadata, mappedRequestClone, response);
         return response;
     }
 
@@ -65,7 +74,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param request
      */
     private findOwnEndpointFromRequest(request: IQNodeRequest): IQNodeConcreteEndpoint {
-        return this.endpoints.find(item => this.endpointsEqual(request.endpointMetadata, item.metadata));
+        return this.endpoints.find(item => QNodeServerBase.endpointsEqual(request.endpointMetadata, item.metadata));
     }
 
     /**
@@ -73,7 +82,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param a
      * @param b
      */
-    private endpointsEqual(a: IQNodeEndpoint, b: IQNodeEndpoint): boolean {
+    static endpointsEqual(a: IQNodeEndpoint, b: IQNodeEndpoint): boolean {
         return a.path === b.path && a.verb === b.verb;
     }
 
