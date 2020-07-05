@@ -191,4 +191,4 @@ export abstract class QNodeServerBase implements IQNodeServer {
  * @param endpointMetadata
  * @constructor
  */
-export const Endpoint = QNodeServerBase.Endpoint;
+export const Endpoint = QNodeServerBase.Endpoint

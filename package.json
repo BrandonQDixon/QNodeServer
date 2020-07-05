@@ -10,7 +10,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "npm run beautify & npn run doc & npm run test"
+            "pre-commit": "npm run beautify && npn run doc && npm run test"
         }
     },
     "repository": {
