@@ -1,0 +1,27 @@
+{
+  "name": "qnodeserver",
+  "version": "1.0.0",
+  "description": "API abstraction for creating and maintaining Node.js servers",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BrandonQDixon/QNodeServer.git"
+  },
+  "author": "Brandon Dixon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BrandonQDixon/QNodeServer/issues"
+  },
+  "homepage": "https://github.com/BrandonQDixon/QNodeServer#readme",
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.10.4",
+    "@types/jest": "^26.0.3",
+    "@types/node": "^14.0.14",
+    "jest": "^26.1.0",
+    "ts-jest": "^26.1.1",
+    "typescript": "^3.9.6"
+  }
+}
