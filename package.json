@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx jest",
-    "beautify": ""
+    "beautify": "npx prettier --write ."
   },
   "husky": {
     "hooks": {
