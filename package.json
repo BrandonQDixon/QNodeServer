@@ -1,36 +1,37 @@
 {
-  "name": "qnodeserver",
-  "version": "1.0.0",
-  "description": "API abstraction for creating and maintaining Node.js servers",
-  "main": "index.js",
-  "scripts": {
-    "test": "npx jest",
-    "beautify": "npx prettier --write ."
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run beautify & npm run test"
+    "name": "qnodeserver",
+    "version": "1.0.0",
+    "description": "API abstraction for creating and maintaining Node.js servers",
+    "main": "index.js",
+    "scripts": {
+        "test": "npx jest",
+        "beautify": "npx prettier --write .",
+        "doc": "npx typedoc"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "npm run beautify & npn run doc & npm run test"
+        }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/BrandonQDixon/QNodeServer.git"
+    },
+    "author": "Brandon Dixon",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/BrandonQDixon/QNodeServer/issues"
+    },
+    "homepage": "https://github.com/BrandonQDixon/QNodeServer#readme",
+    "devDependencies": {
+        "@babel/preset-typescript": "^7.10.4",
+        "@types/jest": "^26.0.3",
+        "@types/node": "^14.0.14",
+        "husky": "^4.2.5",
+        "jest": "^26.1.0",
+        "prettier": "2.0.5",
+        "ts-jest": "^26.1.1",
+        "typedoc": "^0.17.8",
+        "typescript": "^3.9.6"
     }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/BrandonQDixon/QNodeServer.git"
-  },
-  "author": "Brandon Dixon",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/BrandonQDixon/QNodeServer/issues"
-  },
-  "homepage": "https://github.com/BrandonQDixon/QNodeServer#readme",
-  "devDependencies": {
-    "@babel/preset-typescript": "^7.10.4",
-    "@types/jest": "^26.0.3",
-    "@types/node": "^14.0.14",
-    "husky": "^4.2.5",
-    "jest": "^26.1.0",
-    "prettier": "2.0.5",
-    "ts-jest": "^26.1.1",
-    "typedoc": "^0.17.8",
-    "typescript": "^3.9.6"
-  }
 }
