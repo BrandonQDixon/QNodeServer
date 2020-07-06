@@ -1,5 +1,5 @@
 {
-    "name": "qnodeserver",
+    "name": "q-node-server",
     "version": "0.1.0",
     "description": "API abstraction for creating and maintaining Node.js servers",
     "main": "index.js",

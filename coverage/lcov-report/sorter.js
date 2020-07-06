@@ -1,10 +1,10 @@
 /* eslint-disable */
-var addSorting = (function() {
+var addSorting = (function () {
     'use strict';
     var cols,
         currentSort = {
             index: 0,
-            desc: false
+            desc: false,
         };
 
     // returns the summary table element
@@ -37,7 +37,7 @@ var addSorting = (function() {
             col = {
                 key: colNode.getAttribute('data-col'),
                 sortable: !colNode.getAttribute('data-nosort'),
-                type: colNode.getAttribute('data-type') || 'string'
+                type: colNode.getAttribute('data-type') || 'string',
             };
             cols.push(col);
             if (col.sortable) {
@@ -80,7 +80,7 @@ var addSorting = (function() {
     // sorts the table using the data for the ith column
     function sortByIndex(index, desc) {
         var key = cols[index].key,
-            sorter = function(a, b) {
+            sorter = function (a, b) {
                 a = a.data[key];
                 b = b.data[key];
                 return a < b ? -1 : a > b ? 1 : 0;
@@ -92,7 +92,7 @@ var addSorting = (function() {
             i;
 
         if (desc) {
-            finalSorter = function(a, b) {
+            finalSorter = function (a, b) {
                 return -1 * sorter(a, b);
             };
         }
@@ -129,7 +129,7 @@ var addSorting = (function() {
             ithSorter = function ithSorter(i) {
                 var col = cols[i];
 
-                return function() {
+                return function () {
                     var desc = col.defaultDescSort;
 
                     if (currentSort.index === i) {
@@ -156,7 +156,7 @@ var addSorting = (function() {
         }
     }
     // adds sorting functionality to the UI
-    return function() {
+    return function () {
         if (!getTable()) {
             return;
         }
