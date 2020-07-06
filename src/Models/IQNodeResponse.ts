@@ -1,6 +1,7 @@
-import { JSON_OBJECT } from './IJson'
+import { JSON_OBJECT } from './IJson';
 
 export interface IQNodeResponse<ResponseType = any> {
-    body: ResponseType
-    statusCode: number
+    body: ResponseType;
+    stringBody?: string;
+    statusCode: number;
 }

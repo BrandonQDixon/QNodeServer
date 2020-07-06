@@ -1,12 +1,12 @@
-import { IQServerPlugin } from '../../Models/IQServerPlugin'
-import { IQNodeEndpoint } from '../../Models/IQNodeEndpoint'
-import { IQNodeRequest } from '../../Models/IQNodeRequest'
-import { IQNodeResponse } from '../../Models/IQNodeResponse'
-import { JSON_OBJECT } from '../../Models/IJson'
+import { IQServerPlugin } from '../../Models/IQServerPlugin';
+import { IQNodeEndpoint } from '../../Models/IQNodeEndpoint';
+import { IQNodeRequest } from '../../Models/IQNodeRequest';
+import { IQNodeResponse } from '../../Models/IQNodeResponse';
+import { JSON_OBJECT } from '../../Models/IJson';
 
 interface ICallableEndpoint {
-    metadata: IQNodeEndpoint
-    callback: Function
+    metadata: IQNodeEndpoint;
+    callback: Function;
 }
 
 /**
@@ -14,25 +14,25 @@ interface ICallableEndpoint {
  * Useful for testing servers without actually creating server instances
  */
 export class TestDoublePlugin implements IQServerPlugin {
-    private endpoints: Array<ICallableEndpoint> = []
+    private endpoints: Array<ICallableEndpoint> = [];
 
     constructor(private doLog: boolean = false) {}
 
     private consoleOut(...args: Array<any>): void {
         if (this.doLog) {
-            console.log('TestDoublePlugin ==> ', ...args)
+            console.log('TestDoublePlugin ==> ', ...args);
         }
     }
 
-    createEndpoint(
+    async createEndpoint(
         endpoint: IQNodeEndpoint,
         endpointTriggeredCallback: (rawRequest: any) => any
-    ): void {
-        this.consoleOut('Creating endpoint: ', endpoint)
+    ) {
+        this.consoleOut('Creating endpoint: ', endpoint);
         this.endpoints.push({
             metadata: endpoint,
             callback: endpointTriggeredCallback,
-        })
+        });
     }
 
     /**
@@ -44,26 +44,30 @@ export class TestDoublePlugin implements IQServerPlugin {
         path: string,
         rawRequest: IQNodeRequest<JSON_OBJECT>
     ): Promise<IQNodeResponse> {
-        this.consoleOut('Testing endpoint: ', verb, path)
+        this.consoleOut('Testing endpoint: ', verb, path);
 
         const endpoint = this.endpoints.find(
             (route) =>
                 route.metadata.verb === verb && route.metadata.path === path
-        )
+        );
         if (!endpoint) {
             throw new Error(
                 `Error in TestDoublePlugin: cannot test endpoint because it was not added (or is falsey): ${verb} => ${path}`
-            )
+            );
         }
 
-        return endpoint.callback(rawRequest)
+        return endpoint.callback(rawRequest);
     }
 
-    mapRequest(rawRequest: any): IQNodeRequest {
-        return rawRequest
+    async mapRequest(rawRequest: IQNodeRequest): Promise<IQNodeRequest> {
+        return rawRequest;
     }
 
-    startServer(port: number): void {
+    async startServer(port: number) {
+        //stub, since this is not a real server
+    }
+
+    async stopServer() {
         //stub, since this is not a real server
     }
 }

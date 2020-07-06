@@ -1,68 +1,111 @@
-import http, { RequestListener } from 'http'
+import http, { RequestListener, RequestOptions } from 'http';
 
-import { IQServerPlugin } from '../../Models/IQServerPlugin'
+import { IQServerPlugin } from '../../Models/IQServerPlugin';
 import {
     IQNodeConcreteEndpoint,
     IQNodeEndpoint,
-} from '../../Models/IQNodeEndpoint'
-import { IQNodeRequest } from '../../Models/IQNodeRequest'
-import { IQNodeResponse } from '../../Models/IQNodeResponse'
+} from '../../Models/IQNodeEndpoint';
+import { IQNodeRequest } from '../../Models/IQNodeRequest';
+import { IQNodeResponse } from '../../Models/IQNodeResponse';
+import { MIME_TYPES } from '../../Constants/MimeTypes';
 
 interface ICallableEndpoint {
-    metadata: IQNodeEndpoint
-    callback: (rawRequest: any) => Promise<IQNodeResponse>
+    metadata: IQNodeEndpoint;
+    callback: (rawRequest: any) => Promise<IQNodeResponse>;
 }
 
 /**
  * Plugin for Node.js default HTTP API
  */
 export class NodeHttpPlugin implements IQServerPlugin {
-    private endpointRoutes: Array<IQNodeConcreteEndpoint> = []
+    private endpointRoutes: Array<IQNodeConcreteEndpoint> = [];
+    private serverInstance;
 
-    createEndpoint(
+    async createEndpoint(
         endpoint: IQNodeEndpoint,
         endpointTriggeredCallback: (rawRequest: any) => Promise<IQNodeResponse>
-    ): void {
+    ) {
         const newEndpoint: ICallableEndpoint = {
             metadata: endpoint,
             callback: (rawRequest: any) => {
-                return endpointTriggeredCallback(rawRequest)
+                return endpointTriggeredCallback(rawRequest);
             },
-        }
-        this.endpointRoutes.push(newEndpoint)
+        };
+        this.endpointRoutes.push(newEndpoint);
+        this.endpointRoutes.sort((a, b) => {
+            return b.metadata.path.localeCompare(a.metadata.path);
+        });
     }
 
-    mapRequest(rawRequest: any): IQNodeRequest {
-        return undefined
+    async mapRequest(rawRequest: any): Promise<IQNodeRequest> {
+        let rawBody: string = await new Promise((resolve, reject) => {
+            const data = [];
+            rawRequest.on('data', (chunk) => {
+                data.push(chunk);
+            });
+            rawRequest.on('end', () => {
+                resolve(Buffer.from(data).toString());
+            });
+        });
+
+        const request: IQNodeRequest = {
+            url: {
+                protocol: rawRequest.protocol,
+                host: rawRequest.host,
+                full:
+                    rawRequest.protocol +
+                    '://' +
+                    rawRequest.host +
+                    rawRequest.url,
+            },
+            body: {
+                raw: rawBody,
+            },
+            headers: rawRequest.headers,
+            endpointMetadata: {
+                verb: rawRequest.method,
+                path: rawRequest.url,
+            },
+        };
+
+        return request;
     }
 
-    startServer(port: number): void {
-        const server = http.createServer(this.getRequestHandler())
-        server.listen(port)
+    async startServer(port: number) {
+        this.serverInstance = http.createServer(this.getRequestHandler());
+        this.serverInstance.listen(port);
+    }
+
+    async stopServer() {
+        this.serverInstance && this.serverInstance.close();
     }
 
     private getRequestHandler(): RequestListener {
         return async (rawRequest: any, rawResponse: any) => {
-            const foundEndpoint = this.getRequestEndpoint(rawRequest)
+            const foundEndpoint = this.getRequestEndpoint(rawRequest);
             if (!foundEndpoint) {
                 throw new Error(
-                    `Error in NodeHttpPlugin: endpoint callback was falsey for: ${foundEndpoint.metadata.verb} ==> ${foundEndpoint.metadata.path}`
-                )
+                    `Error in NodeHttpPlugin: endpoint callback was falsey for: ${rawRequest.method} ==> ${rawRequest.url}`
+                );
             }
             const result: IQNodeResponse = await foundEndpoint.callback(
                 rawRequest
-            )
-            rawResponse.status(result.statusCode).send(result.body)
-        }
+            );
+
+            //rawResponse.status(result.statusCode).send(result.body);
+            rawResponse.statusCode = result.statusCode;
+            rawResponse.write(Buffer.from(result.stringBody));
+            rawResponse.end();
+        };
     }
 
     private getRequestEndpoint(request: any): IQNodeConcreteEndpoint {
         return this.endpointRoutes.find((route) => {
-            const path = route.metadata.path
+            const path = route.metadata.path;
             return (
                 request.url.indexOf(path) === 0 &&
-                request.verb === route.metadata.verb
-            )
-        })
+                request.method.toLowerCase() === route.metadata.verb
+            );
+        });
     }
 }

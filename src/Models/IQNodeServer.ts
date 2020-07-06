@@ -1,7 +1,8 @@
-import { IQNodeConcreteEndpoint, IQNodeEndpoint } from './IQNodeEndpoint'
+import { IQNodeConcreteEndpoint, IQNodeEndpoint } from './IQNodeEndpoint';
 
 export interface IQNodeServer {
-    endpoints: Array<IQNodeConcreteEndpoint>
+    endpoints: Array<IQNodeConcreteEndpoint>;
 
-    initialize(): void
+    initialize(): void;
+    stop(): void;
 }

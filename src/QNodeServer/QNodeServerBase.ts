@@ -1,11 +1,12 @@
-import { IQNodeServer } from '../Models/IQNodeServer'
+import { IQNodeServer } from '../Models/IQNodeServer';
 import {
     IQNodeConcreteEndpoint,
     IQNodeEndpoint,
-} from '../Models/IQNodeEndpoint'
-import { IQServerPlugin } from '../Models/IQServerPlugin'
-import { IQNodeRequest } from '../Models/IQNodeRequest'
-import { IQNodeResponse } from '../Models/IQNodeResponse'
+} from '../Models/IQNodeEndpoint';
+import { IQServerPlugin } from '../Models/IQServerPlugin';
+import { IQNodeRequest } from '../Models/IQNodeRequest';
+import { IQNodeResponse } from '../Models/IQNodeResponse';
+import { MIME_TYPES } from '../Constants/MimeTypes';
 
 /**
  * This is the base class which a server instance will subclass
@@ -15,13 +16,13 @@ export abstract class QNodeServerBase implements IQNodeServer {
     /**
      * Endpoints which are registered to this class
      */
-    private _endpoints: Array<IQNodeConcreteEndpoint>
+    private _endpoints: Array<IQNodeConcreteEndpoint>;
 
     /**
      * Readonly variable to get server endpoints
      */
     get endpoints(): Array<IQNodeConcreteEndpoint> {
-        return this._endpoints
+        return this._endpoints;
     }
 
     /**
@@ -61,16 +62,21 @@ export abstract class QNodeServerBase implements IQNodeServer {
     /**
      * Start the server
      */
-    initialize() {
-        this._endpoints = this._endpoints || []
-        this._endpoints.forEach((endpoint) => {
-            this.serverPlugin.createEndpoint(
+    async initialize() {
+        this._endpoints = this._endpoints || [];
+        for (let i = 0; i < this._endpoints.length; i++) {
+            const endpoint = this._endpoints[i];
+            await this.serverPlugin.createEndpoint(
                 endpoint.metadata,
                 (rawRequest: any) => this.executeEndpoint(endpoint, rawRequest)
-            )
-        })
-        this.serverPlugin.startServer(this.port)
-        this.onServerInit()
+            );
+        }
+        await this.serverPlugin.startServer(this.port);
+        this.onServerInit();
+    }
+
+    stop() {
+        this.serverPlugin.stopServer();
     }
 
     /**
@@ -82,7 +88,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpointMetadata: IQNodeEndpoint,
         callbackMethod
     ): void {
-        this._endpoints = this._endpoints || []
+        this._endpoints = this._endpoints || [];
         if (
             this.endpoints.find((searchEndpoint) =>
                 QNodeServerBase.endpointsEqual(
@@ -93,12 +99,12 @@ export abstract class QNodeServerBase implements IQNodeServer {
         ) {
             throw new Error(
                 `Error in endpoint register: endpoint already exists with ${endpointMetadata.verb} => ${endpointMetadata.path}`
-            )
+            );
         }
         this._endpoints.push({
             metadata: endpointMetadata,
             callback: callbackMethod,
-        })
+        });
     }
 
     /**
@@ -106,14 +112,14 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param request
      */
     triggerEndpoint(request: IQNodeRequest): Promise<IQNodeResponse> {
-        const endpoint = this.findOwnEndpointFromRequest(request)
+        const endpoint = this.findOwnEndpointFromRequest(request);
         if (!endpoint) {
             throw new Error(
                 `Error when triggering endpoint, none found matching metadata: ${request.endpointMetadata.verb} => ${request.endpointMetadata.path}`
-            )
+            );
         }
 
-        return endpoint.callback.call(this, request)
+        return endpoint.callback.call(this, request);
     }
 
     /**
@@ -125,19 +131,49 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpoint: IQNodeConcreteEndpoint,
         rawRequest: any
     ): Promise<IQNodeResponse> {
-        const mappedRequest = this.serverPlugin.mapRequest(rawRequest)
-        const mappedRequestClone = JSON.parse(JSON.stringify(mappedRequest))
+        const mappedRequest = await this.serverPlugin.mapRequest(rawRequest);
+
+        if (
+            endpoint.metadata.contentType.find(
+                (ct) => ct.type === MIME_TYPES.ApplicationJson
+            )
+        ) {
+            let bodyRaw = mappedRequest.body.raw;
+            if (bodyRaw.length === 0) {
+                bodyRaw = '{}';
+            }
+            mappedRequest.body.json = JSON.parse(bodyRaw);
+        }
+        mappedRequest.endpointMetadata.verb = mappedRequest.endpointMetadata.verb.toLowerCase();
+
+        const mappedRequestClone = JSON.parse(JSON.stringify(mappedRequest));
+
         await this.beforeEndpointTriggered(
             endpoint.metadata,
             mappedRequestClone
-        )
-        const response = await this.triggerEndpoint(mappedRequestClone)
+        );
+        const response: IQNodeResponse = await this.triggerEndpoint(
+            mappedRequestClone
+        );
+
+        let stringBody = '';
+        if (
+            endpoint.metadata.contentType.find(
+                (ct) => ct.type === MIME_TYPES.ApplicationJson
+            )
+        ) {
+            stringBody = JSON.stringify(response.body);
+        } else if (typeof response.body !== 'string') {
+            stringBody = response.body.toString();
+        }
+        response.stringBody = stringBody;
+
         await this.afterEndpointTriggered(
             endpoint.metadata,
             mappedRequestClone,
             response
-        )
-        return response
+        );
+        return response;
     }
 
     /**
@@ -152,7 +188,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
                 request.endpointMetadata,
                 item.metadata
             )
-        )
+        );
     }
 
     /**
@@ -161,7 +197,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param b
      */
     static endpointsEqual(a: IQNodeEndpoint, b: IQNodeEndpoint): boolean {
-        return a.path === b.path && a.verb === b.verb
+        return a.path === b.path && a.verb === b.verb;
     }
 
     /**
@@ -170,19 +206,19 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @constructor
      */
     static Endpoint(endpointMetadata: IQNodeEndpoint) {
-        endpointMetadata.verb = endpointMetadata.verb.toLowerCase()
+        endpointMetadata.verb = endpointMetadata.verb.toLowerCase();
         return function (
             target: QNodeServerBase,
             propertyKey: string,
             descriptor: PropertyDescriptor
         ) {
-            descriptor.enumerable = true
+            descriptor.enumerable = true;
             target.registerEndpointFromDecorator.call(
                 target,
                 endpointMetadata,
                 descriptor.value
-            )
-        }
+            );
+        };
     }
 }
 
@@ -191,4 +227,4 @@ export abstract class QNodeServerBase implements IQNodeServer {
  * @param endpointMetadata
  * @constructor
  */
-export const Endpoint = QNodeServerBase.Endpoint
+export const Endpoint = QNodeServerBase.Endpoint;
