@@ -1,9 +1,11 @@
 {
     "name": "q-node-server-api",
-    "version": "0.1.1",
+    "version": "0.1.4",
     "description": "API abstraction for creating and maintaining Node.js servers",
-    "main": "index.js",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "scripts": {
+        "prepublish": "tsc",
         "test": "npx jest",
         "beautify": "npx prettier --write .",
         "doc": "npx typedoc"
