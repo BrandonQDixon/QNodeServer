@@ -5,7 +5,7 @@ QNodeServer is an API which provides a layer of abstraction over a server API su
 
 # Install
 
-`npm install q-node-server`
+`npm install q-node-server-api`
 
 # Usage
 

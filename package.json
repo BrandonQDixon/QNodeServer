@@ -1,6 +1,6 @@
 {
-    "name": "q-node-server",
-    "version": "0.1.0",
+    "name": "q-node-server-api",
+    "version": "0.1.1",
     "description": "API abstraction for creating and maintaining Node.js servers",
     "main": "index.js",
     "scripts": {
