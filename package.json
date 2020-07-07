@@ -5,8 +5,10 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "prepublish": "tsc",
-        "test": "npx jest",
+        "prepublish": "npm run build",
+        "build": "npm run clear-build && tsc",
+        "clear-build": "del-cli ./dist",
+        "test": "npm run build && npm run clear-build && npx jest --runInBand --no-cache",
         "beautify": "npx prettier --write .",
         "doc": "npx typedoc"
     },
@@ -29,6 +31,7 @@
         "@babel/preset-typescript": "^7.10.4",
         "@types/jest": "^26.0.3",
         "@types/node": "^14.0.14",
+        "del-cli": "^3.0.1",
         "husky": "^4.2.5",
         "jest": "^26.1.0",
         "node-fetch": "^2.6.0",

@@ -71,13 +71,27 @@ export class NodeHttpPlugin implements IQServerPlugin {
         return request;
     }
 
-    async startServer(port: number) {
+    async startServer(port: number): Promise<void> {
         this.serverInstance = http.createServer(this.getRequestHandler());
-        this.serverInstance.listen(port);
+        return new Promise((resolve, reject) => {
+            this.serverInstance.listen(port, (err) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            });
+        });
     }
 
-    async stopServer() {
-        this.serverInstance && this.serverInstance.close();
+    async stopServer(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.serverInstance.close((err) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            })
+        });
     }
 
     private getRequestHandler(): RequestListener {
@@ -92,7 +106,6 @@ export class NodeHttpPlugin implements IQServerPlugin {
                 rawRequest
             );
 
-            //rawResponse.status(result.statusCode).send(result.body);
             rawResponse.statusCode = result.statusCode;
             rawResponse.write(Buffer.from(result.stringBody));
             rawResponse.end();

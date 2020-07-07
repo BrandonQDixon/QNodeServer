@@ -69,6 +69,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
             await this.serverPlugin.createEndpoint(
                 endpoint.metadata,
                 (rawRequest: any) => this.executeEndpoint(endpoint, rawRequest)
+                //this.executeEndpoint.bind(this, endpoint)
             );
         }
         await this.serverPlugin.startServer(this.port);
@@ -103,7 +104,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
         }
         this._endpoints.push({
             metadata: endpointMetadata,
-            callback: callbackMethod,
+            callback: callbackMethod
         });
     }
 
@@ -131,7 +132,45 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpoint: IQNodeConcreteEndpoint,
         rawRequest: any
     ): Promise<IQNodeResponse> {
-        const mappedRequest = await this.serverPlugin.mapRequest(rawRequest);
+        const mappedRequest: IQNodeRequest = await this.mapRequest(endpoint, rawRequest);
+
+        await this.beforeEndpointTriggered(
+            endpoint.metadata,
+            mappedRequest
+        );
+
+        let response: IQNodeResponse = await this.triggerEndpoint(
+            mappedRequest
+        ).catch(err => {
+            const defaultHandler = async function(err): Promise<IQNodeResponse> {
+                console.warn("Error on callback for an endpoint, messaged logged from default error handler", endpoint.metadata, err);
+                return <IQNodeResponse>{
+                    statusCode: 500,
+                    body: {},
+                    stringBody: ""
+                };
+            };
+            const errorHandler = endpoint.metadata.exceptionHandler || defaultHandler;
+            return errorHandler(err).catch(ex => defaultHandler(ex));
+        });
+        response = await this.processEndpointResponse(endpoint, response);
+
+        await this.afterEndpointTriggered(
+            endpoint.metadata,
+            mappedRequest,
+            response
+        );
+        return response;
+    }
+
+    /**
+     * Map the raw request and normalize properties (such as verb);
+     * @param endpoint
+     * @param rawRequest
+     */
+    private async mapRequest(endpoint: IQNodeConcreteEndpoint, rawRequest: any): Promise<IQNodeRequest> {
+        let mappedRequest = await this.serverPlugin.mapRequest(rawRequest);
+        mappedRequest = JSON.parse(JSON.stringify(mappedRequest));
 
         if (
             endpoint.metadata.contentType.find(
@@ -145,16 +184,16 @@ export abstract class QNodeServerBase implements IQNodeServer {
             mappedRequest.body.json = JSON.parse(bodyRaw);
         }
         mappedRequest.endpointMetadata.verb = mappedRequest.endpointMetadata.verb.toLowerCase();
+        return mappedRequest;
+    }
 
-        const mappedRequestClone = JSON.parse(JSON.stringify(mappedRequest));
-
-        await this.beforeEndpointTriggered(
-            endpoint.metadata,
-            mappedRequestClone
-        );
-        const response: IQNodeResponse = await this.triggerEndpoint(
-            mappedRequestClone
-        );
+    /**
+     * Process the endpoint execution result and add any missing fields
+     * @param endpoint
+     * @param response
+     */
+    private async processEndpointResponse(endpoint: IQNodeConcreteEndpoint, response: IQNodeResponse): Promise<IQNodeResponse> {
+        response = JSON.parse(JSON.stringify(response));
 
         let stringBody = '';
         if (
@@ -167,12 +206,6 @@ export abstract class QNodeServerBase implements IQNodeServer {
             stringBody = response.body.toString();
         }
         response.stringBody = stringBody;
-
-        await this.afterEndpointTriggered(
-            endpoint.metadata,
-            mappedRequestClone,
-            response
-        );
         return response;
     }
 

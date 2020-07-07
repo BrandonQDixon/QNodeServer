@@ -39,7 +39,7 @@ export class TestDoublePlugin implements IQServerPlugin {
      * Test helper for testing an endpoint
      * This will directly return the endpoint's response, but the tester should also validate the response is sent in the normal flow as well
      */
-    testEndpoint(
+    async testEndpoint(
         verb: string,
         path: string,
         rawRequest: IQNodeRequest<JSON_OBJECT>
@@ -56,7 +56,13 @@ export class TestDoublePlugin implements IQServerPlugin {
             );
         }
 
-        return endpoint.callback(rawRequest);
+        let result: IQNodeResponse;
+        try {
+            result = await endpoint.callback(rawRequest);
+        } catch (err) {
+            throw new Error("test error");
+        }
+        return result;
     }
 
     async mapRequest(rawRequest: IQNodeRequest): Promise<IQNodeRequest> {

@@ -34,7 +34,7 @@ const TEST_ENDPOINTS = {
                 type: 'application/json',
             },
         ],
-    },
+    }
 };
 
 class TestServer extends QNodeServerBase {
@@ -76,13 +76,20 @@ class TestServer extends QNodeServerBase {
 }
 
 describe('basic server test with test double server', () => {
+
     let server: TestServer;
     let testDoublePlugin: TestDoublePlugin;
 
-    beforeEach(() => {
-        testDoublePlugin = new TestDoublePlugin();
+    beforeEach(async (done) => {
+        testDoublePlugin = new TestDoublePlugin(false);
         server = new TestServer(testDoublePlugin, 123456);
-        server.initialize();
+        await server.initialize();
+        done();
+    });
+
+    afterEach(async (done) => {
+        await server.stop();
+        done();
     });
 
     it('should execute getRandomColor when endpoint is manually triggered', async (done) => {

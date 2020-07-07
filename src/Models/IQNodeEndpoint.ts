@@ -1,3 +1,5 @@
+import {IQNodeResponse} from "./IQNodeResponse";
+
 export interface IContentType {
     type: string;
     charset?: string;
@@ -11,6 +13,7 @@ export interface IQNodeEndpoint {
     verb: string;
     path: string;
     contentType?: Array<IContentType>;
+    exceptionHandler?: (err: any) => Promise<IQNodeResponse>;
 }
 
 /**
