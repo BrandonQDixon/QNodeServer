@@ -1,16 +1,13 @@
-import http, { RequestListener, RequestOptions } from 'http';
+import http, {RequestListener} from 'http';
+import url from 'url';
 
-import { IQServerPlugin } from '../../Models/IQServerPlugin';
-import {
-    IQNodeConcreteEndpoint,
-    IQNodeEndpoint,
-} from '../../Models/IQNodeEndpoint';
-import { IQNodeRequest } from '../../Models/IQNodeRequest';
-import { IQNodeResponse } from '../../Models/IQNodeResponse';
-import { MIME_TYPES } from '../../Constants/MimeTypes';
+import {IQServerPlugin} from '../../Models/IQServerPlugin';
+import {IQNodeConcreteEndpoint, IQNodeEndpoint, QNodeEndpoint,} from '../../Models/IQNodeEndpoint';
+import {IQNodeRequest} from '../../Models/IQNodeRequest';
+import {IQNodeResponse} from '../../Models/IQNodeResponse';
 
 interface ICallableEndpoint {
-    metadata: IQNodeEndpoint;
+    metadata: QNodeEndpoint;
     callback: (rawRequest: any) => Promise<IQNodeResponse>;
 }
 
@@ -22,7 +19,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
     private serverInstance;
 
     async createEndpoint(
-        endpoint: IQNodeEndpoint,
+        endpoint: QNodeEndpoint,
         endpointTriggeredCallback: (rawRequest: any) => Promise<IQNodeResponse>
     ) {
         const newEndpoint: ICallableEndpoint = {
@@ -39,36 +36,41 @@ export class NodeHttpPlugin implements IQServerPlugin {
 
     async mapRequest(rawRequest: any): Promise<IQNodeRequest> {
         let rawBody: string = await new Promise((resolve, reject) => {
-            const data = [];
+            let body = '';
             rawRequest.on('data', (chunk) => {
-                data.push(chunk);
+                body += chunk.toString();
             });
             rawRequest.on('end', () => {
-                resolve(Buffer.from(data).toString());
+                resolve(body);
             });
         });
 
-        const request: IQNodeRequest = {
-            url: {
-                protocol: rawRequest.protocol,
-                host: rawRequest.host,
-                full:
-                    rawRequest.protocol +
-                    '://' +
-                    rawRequest.host +
-                    rawRequest.url,
-            },
-            body: {
-                raw: rawBody,
-            },
-            headers: rawRequest.headers,
-            endpointMetadata: {
-                verb: rawRequest.method,
-                path: rawRequest.url,
-            },
-        };
-
-        return request;
+        try {
+            return {
+                url: {
+                    protocol: rawRequest.protocol,
+                    host: rawRequest.host,
+                    full:
+                        rawRequest.protocol +
+                        '://' +
+                        rawRequest.host +
+                        rawRequest.url,
+                },
+                params: {...url.parse(rawRequest.url, true).query},
+                body: {
+                    raw: rawBody,
+                },
+                headers: rawRequest.headers,
+                endpointMetadata: {
+                    verb: rawRequest.method,
+                    path: rawRequest.url,
+                },
+            };
+        } catch (err) {
+            const message = "Error mapping request from HTTP server to IQNodeRequest: "+err;
+            console.error(message);
+            throw new Error(message);
+        }
     }
 
     async startServer(port: number): Promise<void> {
@@ -90,7 +92,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
                     reject(err);
                 }
                 resolve();
-            })
+            });
         });
     }
 
@@ -102,6 +104,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
                     `Error in NodeHttpPlugin: endpoint callback was falsey for: ${rawRequest.method} ==> ${rawRequest.url}`
                 );
             }
+
             const result: IQNodeResponse = await foundEndpoint.callback(
                 rawRequest
             );
@@ -114,9 +117,8 @@ export class NodeHttpPlugin implements IQServerPlugin {
 
     private getRequestEndpoint(request: any): IQNodeConcreteEndpoint {
         return this.endpointRoutes.find((route) => {
-            const path = route.metadata.path;
             return (
-                request.url.indexOf(path) === 0 &&
+                request.url.indexOf(route.metadata.path) === 0 &&
                 request.method.toLowerCase() === route.metadata.verb
             );
         });

@@ -1,11 +1,12 @@
+import url from 'url';
 import { IQNodeServer } from '../Models/IQNodeServer';
 import {
     IQNodeConcreteEndpoint,
-    IQNodeEndpoint,
+    IQNodeEndpoint, QNodeEndpoint,
 } from '../Models/IQNodeEndpoint';
 import { IQServerPlugin } from '../Models/IQServerPlugin';
-import { IQNodeRequest } from '../Models/IQNodeRequest';
-import { IQNodeResponse } from '../Models/IQNodeResponse';
+import { IQNodeRequest, QNodeRequest } from '../Models/IQNodeRequest';
+import { IQNodeResponse, QNodeResponse } from '../Models/IQNodeResponse';
 import { MIME_TYPES } from '../Constants/MimeTypes';
 
 /**
@@ -69,7 +70,6 @@ export abstract class QNodeServerBase implements IQNodeServer {
             await this.serverPlugin.createEndpoint(
                 endpoint.metadata,
                 (rawRequest: any) => this.executeEndpoint(endpoint, rawRequest)
-                //this.executeEndpoint.bind(this, endpoint)
             );
         }
         await this.serverPlugin.startServer(this.port);
@@ -89,22 +89,23 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpointMetadata: IQNodeEndpoint,
         callbackMethod
     ): void {
+        const concreteEndpoint = new QNodeEndpoint(endpointMetadata);
         this._endpoints = this._endpoints || [];
         if (
             this.endpoints.find((searchEndpoint) =>
                 QNodeServerBase.endpointsEqual(
                     searchEndpoint.metadata,
-                    endpointMetadata
+                    concreteEndpoint
                 )
             )
         ) {
             throw new Error(
-                `Error in endpoint register: endpoint already exists with ${endpointMetadata.verb} => ${endpointMetadata.path}`
+                `Error in endpoint register: endpoint already exists with ${concreteEndpoint.verb} => ${concreteEndpoint.path}`
             );
         }
         this._endpoints.push({
-            metadata: endpointMetadata,
-            callback: callbackMethod
+            metadata: concreteEndpoint,
+            callback: callbackMethod,
         });
     }
 
@@ -112,7 +113,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * This will be called by the plugin when its endpoint is triggered
      * @param request
      */
-    triggerEndpoint(request: IQNodeRequest): Promise<IQNodeResponse> {
+    private triggerEndpoint(request: IQNodeRequest): Promise<IQNodeResponse> {
         const endpoint = this.findOwnEndpointFromRequest(request);
         if (!endpoint) {
             throw new Error(
@@ -132,26 +133,33 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpoint: IQNodeConcreteEndpoint,
         rawRequest: any
     ): Promise<IQNodeResponse> {
-        const mappedRequest: IQNodeRequest = await this.mapRequest(endpoint, rawRequest);
-
-        await this.beforeEndpointTriggered(
-            endpoint.metadata,
-            mappedRequest
+        const mappedRequest: QNodeRequest = await this.mapRequest(
+            endpoint,
+            rawRequest
         );
+
+        await this.beforeEndpointTriggered(endpoint.metadata, mappedRequest);
 
         let response: IQNodeResponse = await this.triggerEndpoint(
             mappedRequest
-        ).catch(err => {
-            const defaultHandler = async function(err): Promise<IQNodeResponse> {
-                console.warn("Error on callback for an endpoint, messaged logged from default error handler", endpoint.metadata, err);
+        ).catch((err) => {
+            const defaultHandler = async function (
+                err
+            ): Promise<IQNodeResponse> {
+                console.warn(
+                    'Error on callback for an endpoint, messaged logged from default error handler',
+                    endpoint.metadata,
+                    err
+                );
                 return <IQNodeResponse>{
                     statusCode: 500,
                     body: {},
-                    stringBody: ""
+                    stringBody: '',
                 };
             };
-            const errorHandler = endpoint.metadata.exceptionHandler || defaultHandler;
-            return errorHandler(err).catch(ex => defaultHandler(ex));
+            const errorHandler =
+                endpoint.metadata.exceptionHandler || defaultHandler;
+            return errorHandler(err).catch((ex) => defaultHandler(ex));
         });
         response = await this.processEndpointResponse(endpoint, response);
 
@@ -168,22 +176,23 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param endpoint
      * @param rawRequest
      */
-    private async mapRequest(endpoint: IQNodeConcreteEndpoint, rawRequest: any): Promise<IQNodeRequest> {
-        let mappedRequest = await this.serverPlugin.mapRequest(rawRequest);
-        mappedRequest = JSON.parse(JSON.stringify(mappedRequest));
-
-        if (
-            endpoint.metadata.contentType.find(
-                (ct) => ct.type === MIME_TYPES.ApplicationJson
-            )
-        ) {
-            let bodyRaw = mappedRequest.body.raw;
-            if (bodyRaw.length === 0) {
-                bodyRaw = '{}';
-            }
-            mappedRequest.body.json = JSON.parse(bodyRaw);
+    private async mapRequest(
+        endpoint: IQNodeConcreteEndpoint,
+        rawRequest: any
+    ): Promise<QNodeRequest> {
+        let mappedRequest: QNodeRequest;
+        if (rawRequest instanceof QNodeRequest) {
+            mappedRequest = new QNodeRequest({
+                ...<IQNodeRequest>rawRequest,
+                endpointMetadata: endpoint.metadata
+            });
+        } else {
+            const mapped = await this.serverPlugin.mapRequest(rawRequest);
+            mappedRequest = new QNodeRequest({
+                ...mapped,
+                endpointMetadata: endpoint.metadata
+            });
         }
-        mappedRequest.endpointMetadata.verb = mappedRequest.endpointMetadata.verb.toLowerCase();
         return mappedRequest;
     }
 
@@ -192,8 +201,11 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param endpoint
      * @param response
      */
-    private async processEndpointResponse(endpoint: IQNodeConcreteEndpoint, response: IQNodeResponse): Promise<IQNodeResponse> {
-        response = JSON.parse(JSON.stringify(response));
+    private async processEndpointResponse(
+        endpoint: IQNodeConcreteEndpoint,
+        response: IQNodeResponse
+    ): Promise<QNodeResponse> {
+        const pResponse = new QNodeResponse(response);
 
         let stringBody = '';
         if (
@@ -201,12 +213,12 @@ export abstract class QNodeServerBase implements IQNodeServer {
                 (ct) => ct.type === MIME_TYPES.ApplicationJson
             )
         ) {
-            stringBody = JSON.stringify(response.body);
-        } else if (typeof response.body !== 'string') {
-            stringBody = response.body.toString();
+            stringBody = JSON.stringify(pResponse.body);
+        } else if (typeof pResponse.body !== 'string') {
+            stringBody = pResponse.body.toString();
         }
-        response.stringBody = stringBody;
-        return response;
+        pResponse.stringBody = stringBody;
+        return pResponse;
     }
 
     /**
@@ -230,7 +242,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param b
      */
     static endpointsEqual(a: IQNodeEndpoint, b: IQNodeEndpoint): boolean {
-        return a.path === b.path && a.verb === b.verb;
+        return a.path.split("?")[0] === b.path.split("?")[0] && a.verb === b.verb;
     }
 
     /**

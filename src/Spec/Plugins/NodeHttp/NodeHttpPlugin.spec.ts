@@ -1,120 +1,17 @@
+import {
+    BASE_URL,
+    DEFINE_COMMON_TEST_CASES, fetchResponse,
+    TEST_PORT,
+    TestServer,
+} from '../../CommonTestCases';
+
 const fetch = require('node-fetch');
 
 /**
  * Tests related to NodeHttpPlugin
  */
-import {
-    Endpoint,
-    QNodeServerBase,
-} from '../../../QNodeServer/QNodeServerBase';
-import { IQNodeResponse } from '../../../Models/IQNodeResponse';
-import { IQNodeRequest } from '../../../Models/IQNodeRequest';
 import { NodeHttpPlugin } from '../../../ServerPlugins/NodeHttp/NodeHttpPlugin';
-
-const TEST_PORT = 65334;
-const BASE_URL = `http://localhost:${TEST_PORT}`;
-
-const TEST_ENDPOINTS = {
-    randomColor: {
-        path: '/randomColor',
-        verb: 'get',
-        contentType: [
-            {
-                type: 'application/json',
-            },
-        ],
-    },
-    numberGet: {
-        path: '/number',
-        verb: 'get',
-        contentType: [
-            {
-                type: 'application/json',
-            },
-        ],
-    },
-    numberPost: {
-        path: '/number',
-        verb: 'post',
-        contentType: [
-            {
-                type: 'application/json',
-            },
-        ],
-    },
-    defaultErrorGet: {
-        path: '/defaultError',
-        verb: 'get',
-        contentType: [
-            {
-                type: 'application/json',
-            },
-        ],
-    },
-    errorHandlerGet: {
-        path: '/errorHandler',
-        verb: 'get',
-        contentType: [
-            {
-                type: 'application/json',
-            },
-        ],
-        exceptionHandler: async (err) => {
-            return {
-                statusCode: 403,
-                body: {}
-            }
-        }
-    }
-};
-
-class TestServer extends QNodeServerBase {
-    private numberFromPost: number = 0;
-
-    @Endpoint(TEST_ENDPOINTS.randomColor)
-    private async getRandomColor(): Promise<IQNodeResponse> {
-        const colors = ['green', 'red', 'blue'];
-        const selectedColorIndex = Math.floor(Math.random() * colors.length);
-        return {
-            statusCode: 200,
-            body: {
-                color: colors[selectedColorIndex],
-            },
-        };
-    }
-
-    @Endpoint(TEST_ENDPOINTS.numberGet)
-    private async getNumber(request: IQNodeRequest): Promise<IQNodeResponse> {
-        return {
-            statusCode: 200,
-            body: {
-                number: this.numberFromPost + request.body.json.number,
-            },
-        };
-    }
-
-    @Endpoint(TEST_ENDPOINTS.numberPost)
-    private async setNumber(request: IQNodeRequest): Promise<IQNodeResponse> {
-        this.numberFromPost = request.body.json.number;
-        return {
-            statusCode: 200,
-            body: {
-                number: this.numberFromPost,
-                status: 'success',
-            },
-        };
-    }
-
-    @Endpoint(TEST_ENDPOINTS.defaultErrorGet)
-    private async throwDefaultError(request: IQNodeRequest): Promise<IQNodeResponse> {
-        throw new Error("Default error test endpoint");
-    }
-
-    @Endpoint(TEST_ENDPOINTS.errorHandlerGet)
-    private async errorHandler(request: IQNodeRequest): Promise<IQNodeResponse> {
-        throw new Error("Error handler test endpoint");
-    }
-}
+import { IQNodeRequest } from '../../..';
 
 describe('basic server test with test double server', () => {
     let server: TestServer;
@@ -132,25 +29,30 @@ describe('basic server test with test double server', () => {
         done();
     });
 
-    it('should catch error on throw default error test endpoint and return 500 code', async (done) => {
-        const response = await fetch(BASE_URL + TEST_ENDPOINTS.defaultErrorGet.path);
-        expect(response.status).toBe(500);
-        done();
-    });
+    DEFINE_COMMON_TEST_CASES(it, (request: IQNodeRequest): Promise<fetchResponse> => {
+        const mapResponse = async (response) => {
+            let body = '';
+            try {
+                body = await response.json();
+            } catch (err) {
+                console.error("Error parsing json response body in http plugin test case", body, err);
+            }
+            return {
+                status: response.status,
+                body
+            }
+        }
 
-    it('should catch error with error handler', async (done) => {
-        const response = await fetch(BASE_URL + TEST_ENDPOINTS.errorHandlerGet.path);
-        expect(response.status).toBe(403);
-        done();
-    });
-
-    it('should execute getRandomColor when endpoint is triggered', async (done) => {
-        const response = await fetch(BASE_URL + TEST_ENDPOINTS.randomColor.path).then((r) =>
-            r.json()
-        );
-
-        expect(response).toBeTruthy();
-        expect(typeof response.color === 'string').toBe(true);
-        done();
+        if (request.endpointMetadata.verb === 'get') {
+            return fetch(request.url.full, {
+                method: request.endpointMetadata.verb,
+                headers: request.headers || {},
+            }).then(mapResponse);
+        }
+        return fetch(request.url.full, {
+            method: request.endpointMetadata.verb,
+            headers: request.headers || {},
+            body: request.body.raw,
+        }).then(mapResponse);
     });
 });

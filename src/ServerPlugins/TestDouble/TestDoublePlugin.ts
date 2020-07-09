@@ -29,6 +29,13 @@ export class TestDoublePlugin implements IQServerPlugin {
         endpointTriggeredCallback: (rawRequest: any) => any
     ) {
         this.consoleOut('Creating endpoint: ', endpoint);
+
+        if (!endpoint.verb || !endpoint.path) {
+            throw new Error(
+                `Error in creating endpoint for TestDouble: verb / path input is falsey: verb: ${endpoint.verb} => path: ${endpoint.path}`
+            );
+        }
+
         this.endpoints.push({
             metadata: endpoint,
             callback: endpointTriggeredCallback,
@@ -60,7 +67,7 @@ export class TestDoublePlugin implements IQServerPlugin {
         try {
             result = await endpoint.callback(rawRequest);
         } catch (err) {
-            throw new Error("test error");
+            throw new Error('test error: ' + err);
         }
         return result;
     }
