@@ -2,12 +2,14 @@ import url from 'url';
 import { IQNodeServer } from '../Models/IQNodeServer';
 import {
     IQNodeConcreteEndpoint,
-    IQNodeEndpoint, QNodeEndpoint,
+    IQNodeEndpoint,
+    QNodeEndpoint,
 } from '../Models/IQNodeEndpoint';
 import { IQServerPlugin } from '../Models/IQServerPlugin';
 import { IQNodeRequest, QNodeRequest } from '../Models/IQNodeRequest';
 import { IQNodeResponse, QNodeResponse } from '../Models/IQNodeResponse';
 import { MIME_TYPES } from '../Constants/MimeTypes';
+import {IQNodeMiddleware, IQNodeMiddlewareComponents} from "..";
 
 /**
  * This is the base class which a server instance will subclass
@@ -76,8 +78,8 @@ export abstract class QNodeServerBase implements IQNodeServer {
         this.onServerInit();
     }
 
-    stop() {
-        this.serverPlugin.stopServer();
+    async stop() {
+        await this.serverPlugin.stopServer();
     }
 
     /**
@@ -112,8 +114,10 @@ export abstract class QNodeServerBase implements IQNodeServer {
     /**
      * This will be called by the plugin when its endpoint is triggered
      * @param request
+     * @param response
+     * @param carryValue
      */
-    private triggerEndpoint(request: IQNodeRequest): Promise<IQNodeResponse> {
+    private triggerEndpoint(request: IQNodeRequest, response: IQNodeResponse, carryValue: any): Promise<IQNodeResponse> {
         const endpoint = this.findOwnEndpointFromRequest(request);
         if (!endpoint) {
             throw new Error(
@@ -121,7 +125,32 @@ export abstract class QNodeServerBase implements IQNodeServer {
             );
         }
 
-        return endpoint.callback.call(this, request);
+        return endpoint.callback.call(this, request, response, carryValue);
+    }
+
+    private async triggerMiddleware(middleware: IQNodeMiddleware, request: IQNodeRequest, response: IQNodeResponse, carryValue: any): Promise<IQNodeMiddlewareComponents> {
+        let components: IQNodeMiddlewareComponents = {
+            request,
+            response,
+            carryValue
+        };
+
+        let receivedComponents: Partial<IQNodeMiddlewareComponents | Error> = await new Promise((resolve, reject) => {
+            middleware.bind(this)(request, response, carryValue, resolve).catch(reject);
+        });
+
+        if (receivedComponents instanceof Error) {
+            throw receivedComponents;
+        } else if (!receivedComponents) {
+            receivedComponents = {};
+        }
+
+        components = <IQNodeMiddlewareComponents>{
+            ...components,
+            ...receivedComponents,
+        };
+
+        return components;
     }
 
     /**
@@ -133,16 +162,40 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpoint: IQNodeConcreteEndpoint,
         rawRequest: any
     ): Promise<IQNodeResponse> {
-        const mappedRequest: QNodeRequest = await this.mapRequest(
+        let mappedRequest: QNodeRequest = await this.mapRequest(
             endpoint,
             rawRequest
         );
-
+        let middlewareResponse: QNodeResponse = QNodeResponse.getEmpty();
         await this.beforeEndpointTriggered(endpoint.metadata, mappedRequest);
 
-        let response: IQNodeResponse = await this.triggerEndpoint(
-            mappedRequest
-        ).catch((err) => {
+        let response: IQNodeResponse;
+        try {
+            //execute middleware
+            let carryValue = null;
+            for (let i = 0; i < endpoint.metadata.middleware.length; i++) {
+                const middleware = endpoint.metadata.middleware[i];
+                const result = await this.triggerMiddleware(middleware, mappedRequest, middlewareResponse, carryValue);
+
+                mappedRequest = new QNodeRequest(result.request);
+                middlewareResponse = new QNodeResponse(result.response);
+                carryValue = result.carryValue;
+
+            }
+
+            //trigger main endpoint
+            response = await this.triggerEndpoint(
+                mappedRequest,
+                middlewareResponse,
+                carryValue
+            );
+
+            //get response from endpoint, middleware, or default empty (if others are not defined)
+            response = response || middlewareResponse;
+            if (!response.statusCode) {
+                response.statusCode = 200;
+            }
+        } catch (err) {
             const defaultHandler = async function (
                 err
             ): Promise<IQNodeResponse> {
@@ -160,7 +213,7 @@ export abstract class QNodeServerBase implements IQNodeServer {
             const errorHandler =
                 endpoint.metadata.exceptionHandler || defaultHandler;
             return errorHandler(err).catch((ex) => defaultHandler(ex));
-        });
+        }
         response = await this.processEndpointResponse(endpoint, response);
 
         await this.afterEndpointTriggered(
@@ -183,14 +236,14 @@ export abstract class QNodeServerBase implements IQNodeServer {
         let mappedRequest: QNodeRequest;
         if (rawRequest instanceof QNodeRequest) {
             mappedRequest = new QNodeRequest({
-                ...<IQNodeRequest>rawRequest,
-                endpointMetadata: endpoint.metadata
+                ...(<IQNodeRequest>rawRequest),
+                endpointMetadata: endpoint.metadata,
             });
         } else {
             const mapped = await this.serverPlugin.mapRequest(rawRequest);
             mappedRequest = new QNodeRequest({
                 ...mapped,
-                endpointMetadata: endpoint.metadata
+                endpointMetadata: endpoint.metadata,
             });
         }
         return mappedRequest;
@@ -242,7 +295,9 @@ export abstract class QNodeServerBase implements IQNodeServer {
      * @param b
      */
     static endpointsEqual(a: IQNodeEndpoint, b: IQNodeEndpoint): boolean {
-        return a.path.split("?")[0] === b.path.split("?")[0] && a.verb === b.verb;
+        return (
+            a.path.split('?')[0] === b.path.split('?')[0] && a.verb === b.verb
+        );
     }
 
     /**

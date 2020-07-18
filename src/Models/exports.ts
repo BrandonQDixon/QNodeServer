@@ -3,3 +3,4 @@ export * from './IQNodeEndpoint';
 export * from './IQNodeRequest';
 export * from './IQNodeResponse';
 export * from './IQServerPlugin';
+export * from './IQNodeMiddleware';

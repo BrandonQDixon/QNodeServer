@@ -1,10 +1,12 @@
 import fetch from 'node-fetch';
 import {
-    Endpoint, IQNodeEndpoint,
+    Endpoint,
+    IQNodeEndpoint, IQNodeMiddleware,
     IQNodeRequest,
     IQNodeResponse,
     IQServerPlugin,
-    JSON_OBJECT, QNodeRequest,
+    JSON_OBJECT,
+    QNodeRequest,
     QNodeServerBase,
 } from '..';
 
@@ -16,7 +18,24 @@ export type fetchResponse = {
 export const TEST_PORT = 65334;
 export const BASE_URL = `http://localhost:${TEST_PORT}`;
 
-const TEST_ENDPOINTS: {[key: string]: IQNodeEndpoint} = {
+const TEST_MIDDLEWARE /*: {[key: string]: IQNodeMiddleware}*/ = {
+    throwError: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
+        throw new Error("Test middleware throw error");
+    },
+    nextError: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
+        next(new Error("Test middleware throw error in next"));
+    },
+    appendKeyToRequest: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
+        request.body.json.newNumber = 17;
+        next({request});
+    },
+    appendKeyToResponse: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
+        response.body.newNumber = 17;
+        next({response});
+    },
+}
+
+const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
     randomColor: {
         path: '/randomColor',
         verb: 'get',
@@ -68,6 +87,68 @@ const TEST_ENDPOINTS: {[key: string]: IQNodeEndpoint} = {
             };
         },
     },
+    middlewareThrowError: {
+        path: '/middlewareThrowError',
+        verb: 'get',
+        middleware: [TEST_MIDDLEWARE.throwError],
+        contentType: [
+            {
+                type: 'application/json',
+            },
+        ],
+        exceptionHandler: async (err) => {
+            return {
+                statusCode: 500,
+                body: {},
+            };
+        },
+    },
+    middlewareNextError: {
+        path: '/middlewareNextError',
+        verb: 'get',
+        middleware: [TEST_MIDDLEWARE.nextError],
+        contentType: [
+            {
+                type: 'application/json',
+            },
+        ],
+        exceptionHandler: async (err) => {
+            return {
+                statusCode: 500,
+                body: {},
+            };
+        },
+    },
+    middlewareRequestAppendKey: {
+        path: '/middlewareRequestAppendKey',
+        verb: 'get',
+        middleware: [TEST_MIDDLEWARE.appendKeyToRequest],
+        contentType: [
+            {
+                type: 'application/json',
+            },
+        ]
+    },
+    middlewareResponseAppendKey: {
+        path: '/middlewareResponseAppendKey',
+        verb: 'get',
+        middleware: [TEST_MIDDLEWARE.appendKeyToResponse],
+        contentType: [
+            {
+                type: 'application/json',
+            },
+        ]
+    },
+    middlewareRequestResponseAppendKey: {
+        path: '/middlewareRequestResponseAppendKey',
+        verb: 'get',
+        middleware: [TEST_MIDDLEWARE.appendKeyToRequest, TEST_MIDDLEWARE.appendKeyToResponse],
+        contentType: [
+            {
+                type: 'application/json',
+            },
+        ]
+    }
 };
 
 export class TestServer extends QNodeServerBase {
@@ -90,7 +171,8 @@ export class TestServer extends QNodeServerBase {
         return {
             statusCode: 200,
             body: {
-                number: this.numberFromPost + parseInt(request.params.number+""),
+                number:
+                    this.numberFromPost + parseInt(request.params.number + ''),
             },
         };
     }
@@ -119,6 +201,47 @@ export class TestServer extends QNodeServerBase {
         request: IQNodeRequest
     ): Promise<IQNodeResponse> {
         throw new Error('Error handler test endpoint');
+    }
+
+
+    @Endpoint(TEST_ENDPOINTS.middlewareThrowError)
+    private async middlewareThrowError() {
+        return {
+            statusCode: 200,
+            body: {},
+        };
+    }
+
+    @Endpoint(TEST_ENDPOINTS.middlewareNextError)
+    private async middlewareNextError() {
+        return {
+            statusCode: 200,
+            body: {},
+        };
+    }
+
+    @Endpoint(TEST_ENDPOINTS.middlewareRequestAppendKey)
+    private async middlewareRequestAppendKey(request: IQNodeRequest, response: IQNodeResponse, middlewareCarryValue: any) {
+        return {
+            statusCode: 200,
+            body: {},
+        };
+    }
+
+    @Endpoint(TEST_ENDPOINTS.middlewareResponseAppendKey)
+    private async middlewareResponseAppendKey(request: IQNodeRequest, response: IQNodeResponse, middlewareCarryValue: any) {
+        return {
+            statusCode: 200,
+            body: response.body,
+        };
+    }
+
+    @Endpoint(TEST_ENDPOINTS.middlewareRequestResponseAppendKey)
+    private async middlewareRequestResponseAppendKey(request: IQNodeRequest, response: IQNodeResponse, middlewareCarryValue: any) {
+        return {
+            statusCode: 200,
+            body: response.body,
+        };
     }
 }
 
@@ -160,7 +283,7 @@ export function DEFINE_COMMON_TEST_CASES(
             },
             body: {
                 raw: JSON.stringify(postBody),
-                json: {...postBody},
+                json: { ...postBody },
             },
             params: {},
             headers: {
@@ -174,7 +297,7 @@ export function DEFINE_COMMON_TEST_CASES(
         expect(postResponse.body.number).toBe(postBody.number);
         expect(postResponse.body.status).toBe('success');
         done();
-    })
+    });
 
     it('should get and post to different endpoints with the same path', async (done) => {
         //setup
@@ -192,7 +315,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 json: {},
             },
             params: {
-                number: "" + getBody.number
+                number: '' + getBody.number,
             },
             headers: {},
             endpointMetadata: TEST_ENDPOINTS.numberGet,
@@ -209,7 +332,7 @@ export function DEFINE_COMMON_TEST_CASES(
             },
             body: {
                 raw: JSON.stringify(postBody),
-                json: {...postBody},
+                json: { ...postBody },
             },
             params: {},
             headers: {
@@ -246,7 +369,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 json: {},
             },
             params: {
-                number: "" + getBody.number
+                number: '' + getBody.number,
             },
             headers: {},
             endpointMetadata: TEST_ENDPOINTS.numberGet,
@@ -263,7 +386,7 @@ export function DEFINE_COMMON_TEST_CASES(
             },
             body: {
                 raw: JSON.stringify(postBody),
-                json: {...postBody},
+                json: { ...postBody },
             },
             params: {},
             headers: {
@@ -359,4 +482,72 @@ export function DEFINE_COMMON_TEST_CASES(
         expect(response.status).toBe(403);
         done();
     });
+
+    it('should execute single throwError middleware', async (done) => {
+        const request: IQNodeRequest = new QNodeRequest({
+            url: {
+                protocol: 'http',
+                full: BASE_URL + TEST_ENDPOINTS.middlewareThrowError.path,
+                host: 'localhost',
+            },
+            params: {},
+            body: {
+                raw: '{}',
+                json: {},
+            },
+            headers: {
+                'content-type': 'application/json',
+            },
+            endpointMetadata: TEST_ENDPOINTS.middlewareThrowError,
+        });
+        const response: fetchResponse = await sendRequest(request);
+        expect(response.status).toBe(500);
+        done();
+    });
+
+    it('should execute single nextError middleware where error object is provided to "next"', async (done) => {
+        const request: IQNodeRequest = new QNodeRequest({
+            url: {
+                protocol: 'http',
+                full: BASE_URL + TEST_ENDPOINTS.middlewareNextError.path,
+                host: 'localhost',
+            },
+            params: {},
+            body: {
+                raw: '{}',
+                json: {},
+            },
+            headers: {
+                'content-type': 'application/json',
+            },
+            endpointMetadata: TEST_ENDPOINTS.middlewareNextError,
+        });
+        const response: fetchResponse = await sendRequest(request);
+        expect(response.status).toBe(500);
+        done();
+    });
+
+    it('should update response object if middleware changes values', async (done) => {
+        const request: IQNodeRequest = new QNodeRequest({
+            url: {
+                protocol: 'http',
+                full: BASE_URL + TEST_ENDPOINTS.middlewareResponseAppendKey.path,
+                host: 'localhost',
+            },
+            params: {},
+            body: {
+                raw: '{}',
+                json: {},
+            },
+            headers: {
+                'content-type': 'application/json',
+            },
+            endpointMetadata: TEST_ENDPOINTS.middlewareResponseAppendKey,
+        });
+        const response: fetchResponse = await sendRequest(request);
+        expect(response.status).toBe(200);
+        expect(response.body.newNumber).toBeDefined();
+        done();
+    });
+
 }

@@ -1,10 +1,14 @@
-import http, {RequestListener} from 'http';
+import http, { RequestListener } from 'http';
 import url from 'url';
 
-import {IQServerPlugin} from '../../Models/IQServerPlugin';
-import {IQNodeConcreteEndpoint, IQNodeEndpoint, QNodeEndpoint,} from '../../Models/IQNodeEndpoint';
-import {IQNodeRequest} from '../../Models/IQNodeRequest';
-import {IQNodeResponse} from '../../Models/IQNodeResponse';
+import { IQServerPlugin } from '../../Models/IQServerPlugin';
+import {
+    IQNodeConcreteEndpoint,
+    IQNodeEndpoint,
+    QNodeEndpoint,
+} from '../../Models/IQNodeEndpoint';
+import { IQNodeRequest } from '../../Models/IQNodeRequest';
+import { IQNodeResponse } from '../../Models/IQNodeResponse';
 
 interface ICallableEndpoint {
     metadata: QNodeEndpoint;
@@ -56,7 +60,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
                         rawRequest.host +
                         rawRequest.url,
                 },
-                params: {...url.parse(rawRequest.url, true).query},
+                params: { ...url.parse(rawRequest.url, true).query },
                 body: {
                     raw: rawBody,
                 },
@@ -67,7 +71,9 @@ export class NodeHttpPlugin implements IQServerPlugin {
                 },
             };
         } catch (err) {
-            const message = "Error mapping request from HTTP server to IQNodeRequest: "+err;
+            const message =
+                'Error mapping request from HTTP server to IQNodeRequest: ' +
+                err;
             console.error(message);
             throw new Error(message);
         }
@@ -110,7 +116,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
             );
 
             rawResponse.statusCode = result.statusCode;
-            rawResponse.write(Buffer.from(result.stringBody));
+            rawResponse.write(Buffer.from(result.stringBody || ""));
             rawResponse.end();
         };
     }

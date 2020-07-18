@@ -1,6 +1,7 @@
 import { JSON_OBJECT } from './IJson';
 import { IQNodeEndpoint } from './IQNodeEndpoint';
 import { IQNodeRequest } from './IQNodeRequest';
+import {CloneInputObj} from "../Util/Object/CloneObject";
 
 export interface IQNodeResponse<ResponseType = any> {
     body: ResponseType;
@@ -14,27 +15,30 @@ export interface IQNodeResponse<ResponseType = any> {
  */
 export class QNodeResponse<ResponseType = any>
     implements IQNodeResponse<ResponseType> {
-
     body: ResponseType;
     statusCode: number;
     stringBody: string;
 
-    constructor(response: IQNodeResponse) {
-        response = {
+    constructor(@CloneInputObj inputResponse: IQNodeResponse) {
+        const response = {
             ...QNodeResponse.getEmptySelf(),
-            ...response
-        }
+            ...inputResponse,
+        };
 
-        Object.keys(response).forEach(k => {
+        Object.keys(response).forEach((k) => {
             this[k] = response[k];
         });
     }
 
     private static getEmptySelf(): IQNodeResponse {
         return {
-            body: null,
-            stringBody: '',
-            statusCode: null
-        }
+            body: {},
+            stringBody: '{}',
+            statusCode: null,
+        };
+    }
+
+    static getEmpty(): QNodeResponse {
+        return new QNodeResponse(QNodeResponse.getEmptySelf());
     }
 }

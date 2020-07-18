@@ -1,10 +1,5 @@
 import { IQNodeResponse } from './IQNodeResponse';
-
-export type IQMiddleware = (
-    request: any,
-    response: any,
-    next: Function
-) => Promise<void>;
+import {IQNodeMiddleware} from "./IQNodeMiddleware";
 
 export interface IContentType {
     type: string;
@@ -20,7 +15,7 @@ export interface IQNodeEndpoint {
     path: string;
     contentType?: Array<IContentType>;
     exceptionHandler?: (err: any) => Promise<IQNodeResponse>;
-    middleware?: Array<IQMiddleware>;
+    middleware?: Array<IQNodeMiddleware>;
 }
 
 /**
@@ -32,14 +27,13 @@ export interface IQNodeConcreteEndpoint {
 }
 
 export class QNodeEndpoint implements IQNodeEndpoint {
-
     contentType: Array<IContentType>;
 
     exceptionHandler = (err: any): Promise<IQNodeResponse> => {
         return Promise.resolve(undefined);
-    }
+    };
 
-    middleware: Array<IQMiddleware>;
+    middleware: Array<IQNodeMiddleware>;
     path: string;
     verb: string;
 
@@ -57,20 +51,22 @@ export class QNodeEndpoint implements IQNodeEndpoint {
     }
 
     constructor(endpoint: IQNodeEndpoint) {
-
         endpoint = {
             ...this.getEmptySelf(),
-            ...endpoint
+            ...endpoint,
         };
 
-        Object.keys(endpoint).forEach(k => {
-            this[k] = endpoint[k]
+        Object.keys(endpoint).forEach((k) => {
+            this[k] = endpoint[k];
         });
 
         this.verb = this.verb.toLowerCase();
     }
 
-    static async defaultExceptionHandler(endpoint: IQNodeEndpoint, err: any): Promise<IQNodeResponse> {
+    static async defaultExceptionHandler(
+        endpoint: IQNodeEndpoint,
+        err: any
+    ): Promise<IQNodeResponse> {
         console.warn(
             'Error on callback for an endpoint, messaged logged from default error handler',
             endpoint,
@@ -88,9 +84,11 @@ export class QNodeEndpoint implements IQNodeEndpoint {
             verb: '',
             path: '',
             contentType: [],
-            exceptionHandler: QNodeEndpoint.defaultExceptionHandler.bind(null, this),
-            middleware: []
-        }
+            exceptionHandler: QNodeEndpoint.defaultExceptionHandler.bind(
+                null,
+                this
+            ),
+            middleware: [],
+        };
     }
-
 }
