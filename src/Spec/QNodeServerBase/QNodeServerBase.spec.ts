@@ -1,8 +1,8 @@
 /**
  * Tests related to QNodeServerBase
  */
-import {DEFINE_COMMON_TEST_CASES, TestServer} from "../CommonTestCases";
-import {IQNodeRequest, IQNodeResponse, TestDoublePlugin} from "../..";
+import { DEFINE_COMMON_TEST_CASES, TestServer } from '../CommonTestCases';
+import { IQNodeRequest, IQNodeResponse, TestDoublePlugin } from '../..';
 
 describe('basic server test with test double server', () => {
     let server: TestServer;

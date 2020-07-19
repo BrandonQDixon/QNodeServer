@@ -19,14 +19,13 @@ QNodeServer is an API which provides a layer of abstraction over a server API su
 class YourServer extends QNodeServerBase {
     @Endpoint({
         verb: 'get',
-        path: '/user',
+        route: '/api/colors/:name/hex',
+		middleware: [AUTH_USER_MIDDLEWARE]
     })
     private async getUser(request: IQNodeRequest): Promise<IQNodeResponse> {
         return {
-            username: 'stub',
+            hex: COLOR_HEX[request.params.name]
         };
     }
 }
 ```
-
-# Test Summary

@@ -1,16 +1,19 @@
 import url from 'url';
-import {IQNodeServer} from "../Models/IQNodeServer";
+import { IQNodeServer } from '../Models/IQNodeServer';
 import {
     IQNodeConcreteEndpoint,
-    IQNodeEndpoint, IQNodeEndpointParams, IQNodeMiddleware, IQNodeMiddlewareComponents,
+    IQNodeEndpoint,
+    IQNodeEndpointParams,
+    IQNodeMiddleware,
+    IQNodeMiddlewareComponents,
     IQNodeRequest,
     IQNodeResponse,
     IQServerPlugin,
     MIME_TYPES,
-    QNodeEndpoint, QNodeRequest,
-    QNodeResponse
-} from "..";
-
+    QNodeEndpoint,
+    QNodeRequest,
+    QNodeResponse,
+} from '..';
 
 /**
  * This is the base class which a server instance will subclass
@@ -251,22 +254,23 @@ export abstract class QNodeServerBase implements IQNodeServer {
         endpoint: IQNodeConcreteEndpoint,
         rawRequest: any
     ): Promise<QNodeRequest> {
-
         let mappedRequest: QNodeRequest;
         if (rawRequest instanceof QNodeRequest) {
             mappedRequest = new QNodeRequest({
                 ...(<IQNodeRequest>rawRequest),
-                endpointMetadata: endpoint.metadata
+                endpointMetadata: endpoint.metadata,
             });
         } else {
             const mapped = await this.serverPlugin.mapRequest(rawRequest);
             mappedRequest = new QNodeRequest({
                 ...mapped,
-                endpointMetadata: endpoint.metadata
+                endpointMetadata: endpoint.metadata,
             });
         }
 
-        const params: {[key: string]: string} = endpoint.metadata.route.getUrlArgs(mappedRequest.url.path);
+        const params: {
+            [key: string]: string;
+        } = endpoint.metadata.route.getUrlArgs(mappedRequest.url.path);
         mappedRequest.params = params;
 
         return mappedRequest;
@@ -319,7 +323,8 @@ export abstract class QNodeServerBase implements IQNodeServer {
      */
     static endpointsEqual(a: IQNodeEndpoint, b: IQNodeEndpoint): boolean {
         return (
-            a.route.path.split('?')[0] === b.route.path.split('?')[0] && a.verb === b.verb
+            a.route.path.split('?')[0] === b.route.path.split('?')[0] &&
+            a.verb === b.verb
         );
     }
 

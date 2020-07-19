@@ -51,20 +51,29 @@ describe('basic server test with test double server', () => {
             };
 
             const handleError = (err) => {
-                throw new Error("Error in NodeHttpPlugin spec for url " + request.url.full + " : " + err);
-            }
+                throw new Error(
+                    'Error in NodeHttpPlugin spec for url ' +
+                        request.url.full +
+                        ' : ' +
+                        err
+                );
+            };
 
             if (request.endpointMetadata.verb === 'get') {
                 return fetch(request.url.full, {
                     method: request.endpointMetadata.verb,
                     headers: request.headers || {},
-                }).then(mapResponse).catch(handleError);
+                })
+                    .then(mapResponse)
+                    .catch(handleError);
             }
             return fetch(request.url.full, {
                 method: request.endpointMetadata.verb,
                 headers: request.headers || {},
                 body: request.body.raw,
-            }).then(mapResponse).catch(handleError);;
+            })
+                .then(mapResponse)
+                .catch(handleError);
         }
     );
 });

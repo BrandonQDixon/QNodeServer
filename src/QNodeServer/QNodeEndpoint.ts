@@ -5,8 +5,8 @@ import {
     IQNodeMiddleware,
     IQNodeResponse,
     IQNodeRoute,
-    QNodeRoute
-} from "..";
+    QNodeRoute,
+} from '..';
 
 /**
  * Endpoint with callback defined

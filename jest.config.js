@@ -3,12 +3,6 @@ module.exports = {
     verbose: true,
     collectCoverage: true,
     testEnvironment: 'node',
-    coveragePathIgnorePatterns: [
-        "src/Spec"
-    ],
-    coverageReporters: [
-        "json-summary",
-        "text",
-        "lcov"
-    ]
+    coveragePathIgnorePatterns: ['src/Spec'],
+    coverageReporters: ['json-summary', 'text', 'lcov'],
 };

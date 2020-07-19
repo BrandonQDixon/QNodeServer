@@ -1,6 +1,6 @@
 import { IQNodeResponse } from './IQNodeResponse';
 import { IQNodeMiddleware } from './IQNodeMiddleware';
-import {IQNodeRoute} from "./IQNodeRoute";
+import { IQNodeRoute } from './IQNodeRoute';
 
 export interface IContentType {
     type: string;

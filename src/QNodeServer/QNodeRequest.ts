@@ -1,5 +1,12 @@
-import {IQNodeEndpoint, IQNodeRequest, IQNodeUrl, MIME_TYPES, QNodeEndpoint, QNodeUrl} from "..";
-import {CloneInputObj} from "../Util/Object/CloneObject";
+import {
+    IQNodeEndpoint,
+    IQNodeRequest,
+    IQNodeUrl,
+    MIME_TYPES,
+    QNodeEndpoint,
+    QNodeUrl,
+} from '..';
+import { CloneInputObj } from '../Util/Object/CloneObject';
 import url from 'url';
 
 /**
@@ -8,13 +15,13 @@ import url from 'url';
  */
 export class QNodeRequest<ParsedBodyType = any>
     implements IQNodeRequest<ParsedBodyType> {
-    params: { [key: string]: string};
-    query: {[key: string]: string | Array<string>;};
+    params: { [key: string]: string };
+    query: { [key: string]: string | Array<string> };
     body: { raw: string; json?: ParsedBodyType };
     endpointMetadata: IQNodeEndpoint;
     headers: { 'content-type'?: string; [key: string]: string };
     timeout: number;
-    url: IQNodeUrl
+    url: IQNodeUrl;
 
     constructor(@CloneInputObj inputRequest: IQNodeRequest) {
         const request = {
@@ -102,9 +109,7 @@ export class QNodeRequest<ParsedBodyType = any>
                             (<Array<string>>this.query[key]).reduce(
                                 (innerStr, value) => {
                                     return (
-                                        innerStr +
-                                        '&' +
-                                        newParam(key, value)
+                                        innerStr + '&' + newParam(key, value)
                                     );
                                 },
                                 ''
@@ -116,9 +121,8 @@ export class QNodeRequest<ParsedBodyType = any>
                 }, '')
                 .substring(1);
 
-            this.url.query = "?" + queryParams;
-            this.url.full +=
-                '?' + queryParams
+            this.url.query = '?' + queryParams;
+            this.url.full += '?' + queryParams;
         }
     }
 
@@ -135,7 +139,7 @@ export class QNodeRequest<ParsedBodyType = any>
                 host: '',
                 path: '',
                 query: '',
-                protocol: ''
+                protocol: '',
             }),
             endpointMetadata: null,
         };

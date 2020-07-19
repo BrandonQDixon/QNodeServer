@@ -1,5 +1,13 @@
 import fetch from 'node-fetch';
-import {Endpoint, IQNodeRequest, IQNodeResponse, QNodeRequest, QNodeRoute, QNodeServerBase, QNodeUrl} from "..";
+import {
+    Endpoint,
+    IQNodeRequest,
+    IQNodeResponse,
+    QNodeRequest,
+    QNodeRoute,
+    QNodeServerBase,
+    QNodeUrl,
+} from '..';
 
 export type fetchResponse = {
     status: number;
@@ -171,7 +179,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
                 type: 'application/json',
             },
         ],
-    }
+    },
 };
 
 export class TestServer extends QNodeServerBase {
@@ -279,14 +287,12 @@ export class TestServer extends QNodeServerBase {
     }
 
     @Endpoint(TEST_ENDPOINTS.routeParam)
-    private async routeParam(
-        request: IQNodeRequest
-    ) {
+    private async routeParam(request: IQNodeRequest) {
         return {
             statusCode: 200,
             body: {
-                path: request.params.path
-            }
+                path: request.params.path,
+            },
         };
     }
 }
@@ -302,7 +308,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.randomColor.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             body: {
@@ -330,7 +336,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.numberPost.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             body: {
@@ -361,8 +367,8 @@ export function DEFINE_COMMON_TEST_CASES(
                 protocol: 'http',
                 host: 'localhost',
                 port: TEST_PORT,
-                path:  TEST_ENDPOINTS.numberGet.route.path,
-                query: "?number="+getBody.number
+                path: TEST_ENDPOINTS.numberGet.route.path,
+                query: '?number=' + getBody.number,
             }),
             query: {},
             body: {
@@ -383,7 +389,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.numberPost.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             body: {
@@ -419,7 +425,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 protocol: 'http',
                 host: 'localhost',
                 path: TEST_ENDPOINTS.numberGet.route.path,
-                query: "?number="+getBody.number,
+                query: '?number=' + getBody.number,
                 port: TEST_PORT,
             }),
             query: {},
@@ -441,7 +447,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.numberPost.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             body: {
@@ -506,7 +512,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.defaultErrorGet.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             params: {},
@@ -531,7 +537,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.errorHandlerGet.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             params: {},
@@ -556,7 +562,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.middlewareThrowError.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             params: {},
@@ -581,7 +587,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.middlewareNextError.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             params: {},
@@ -606,7 +612,7 @@ export function DEFINE_COMMON_TEST_CASES(
                 port: TEST_PORT,
                 host: 'localhost',
                 path: TEST_ENDPOINTS.middlewareResponseAppendKey.route.path,
-                query: ""
+                query: '',
             }),
             query: {},
             params: {},
@@ -627,15 +633,18 @@ export function DEFINE_COMMON_TEST_CASES(
 
     it('should route a path based on path params (:path) in url', async (done) => {
         const TESTS = ['location', 'blue', 'green', 'test'];
-        for (let i=0; i<TESTS.length; i++) {
+        for (let i = 0; i < TESTS.length; i++) {
             const test = TESTS[i];
             const request: IQNodeRequest = new QNodeRequest({
                 url: new QNodeUrl({
                     protocol: 'http',
                     port: TEST_PORT,
                     host: 'localhost',
-                    path: TEST_ENDPOINTS.routeParam.route.path.replace(":path", test),
-                    query: ""
+                    path: TEST_ENDPOINTS.routeParam.route.path.replace(
+                        ':path',
+                        test
+                    ),
+                    query: '',
                 }),
                 query: {},
                 params: {},

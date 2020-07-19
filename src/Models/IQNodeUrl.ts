@@ -4,5 +4,5 @@ export interface IQNodeUrl {
     host: string;
     path: string;
     query: string;
-    port: string
+    port: string;
 }

@@ -3,8 +3,8 @@ import { IQNodeEndpoint } from '../../Models/IQNodeEndpoint';
 import { IQNodeRequest } from '../../Models/IQNodeRequest';
 import { IQNodeResponse } from '../../Models/IQNodeResponse';
 import { JSON_OBJECT } from '../../Models/IJson';
-import {QNodeRequest} from "../..";
-import {CloneInputObj} from "../../Util/Object/CloneObject";
+import { QNodeRequest } from '../..';
+import { CloneInputObj } from '../../Util/Object/CloneObject';
 
 interface ICallableEndpoint {
     metadata: IQNodeEndpoint;
@@ -25,7 +25,6 @@ export class TestDoublePlugin implements IQServerPlugin {
         endpoint: IQNodeEndpoint,
         endpointTriggeredCallback: (rawRequest: any) => any
     ) {
-
         if (!endpoint.verb || !endpoint.route.path) {
             throw new Error(
                 `Error in creating endpoint for TestDouble: verb / path input is falsey: verb: ${endpoint.verb} => path: ${endpoint.route.path}`
@@ -48,14 +47,17 @@ export class TestDoublePlugin implements IQServerPlugin {
         @CloneInputObj rawRequest: IQNodeRequest<JSON_OBJECT>
     ): Promise<IQNodeResponse> {
         if (!this.serverIsOn) {
-            throw new Error("Test endpoint was triggered without initializing the server!");
+            throw new Error(
+                'Test endpoint was triggered without initializing the server!'
+            );
         }
 
         const request = new QNodeRequest(rawRequest);
 
         const endpoint = this.endpoints.find(
             (route) =>
-                route.metadata.verb === verb && route.metadata.route.urlMatches(path)
+                route.metadata.verb === verb &&
+                route.metadata.route.urlMatches(path)
         );
         if (!endpoint) {
             throw new Error(

@@ -1,5 +1,5 @@
-import {CloneInputObj} from "../Util/Object/CloneObject";
-import {IQNodeResponse} from "..";
+import { CloneInputObj } from '../Util/Object/CloneObject';
+import { IQNodeResponse } from '..';
 
 /**
  * Class definition for request

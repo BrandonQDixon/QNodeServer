@@ -1,6 +1,13 @@
 import http, { RequestListener } from 'http';
 import url from 'url';
-import {IQNodeConcreteEndpoint, IQNodeRequest, IQNodeResponse, IQServerPlugin, QNodeEndpoint, QNodeUrl} from "../..";
+import {
+    IQNodeConcreteEndpoint,
+    IQNodeRequest,
+    IQNodeResponse,
+    IQServerPlugin,
+    QNodeEndpoint,
+    QNodeUrl,
+} from '../..';
 
 interface ICallableEndpoint {
     metadata: QNodeEndpoint;
@@ -44,11 +51,14 @@ export class NodeHttpPlugin implements IQServerPlugin {
         try {
             const urlParts = url.parse(rawRequest.url);
 
-            const endpointMetadata = this.endpointRoutes.find(endpoint => {
+            const endpointMetadata = this.endpointRoutes.find((endpoint) => {
                 return endpoint.metadata.route.urlMatches(urlParts.pathname);
             });
             if (!endpointMetadata) {
-                throw new Error("Could not find endpoint metadata for path: " + urlParts.path);
+                throw new Error(
+                    'Could not find endpoint metadata for path: ' +
+                        urlParts.path
+                );
             }
 
             return {
@@ -57,10 +67,10 @@ export class NodeHttpPlugin implements IQServerPlugin {
                     host: urlParts.host,
                     path: urlParts.pathname,
                     query: urlParts.query,
-                    port: urlParts.port
+                    port: urlParts.port,
                 }),
-                query: {...url.parse(rawRequest.url, true).query},
-                params: {} ,
+                query: { ...url.parse(rawRequest.url, true).query },
+                params: {},
                 body: {
                     raw: rawBody,
                 },

@@ -1,8 +1,8 @@
 /**
  * Abstraction over a request object representing the HTTP request being received
  */
-import {IQNodeEndpoint} from './IQNodeEndpoint';
-import {IQNodeUrl} from "./IQNodeUrl";
+import { IQNodeEndpoint } from './IQNodeEndpoint';
+import { IQNodeUrl } from './IQNodeUrl';
 
 export interface IQNodeRequest<ParsedBodyType = any> {
     params: {
@@ -10,7 +10,7 @@ export interface IQNodeRequest<ParsedBodyType = any> {
     };
     query: {
         [key: string]: string | Array<string>;
-    }
+    };
     body: {
         raw: string;
         json?: ParsedBodyType;
