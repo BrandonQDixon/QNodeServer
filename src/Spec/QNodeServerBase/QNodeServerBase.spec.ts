@@ -1,17 +1,16 @@
 /**
  * Tests related to QNodeServerBase
  */
-import { TestDoublePlugin } from '../../ServerPlugins/TestDouble/TestDoublePlugin';
-import { DEFINE_COMMON_TEST_CASES, TestServer } from '../CommonTestCases';
-import { IQNodeRequest, IQNodeResponse } from '../..';
+import {DEFINE_COMMON_TEST_CASES, TestServer} from "../CommonTestCases";
+import {IQNodeRequest, IQNodeResponse, TestDoublePlugin} from "../..";
 
 describe('basic server test with test double server', () => {
     let server: TestServer;
     let testDoublePlugin: TestDoublePlugin;
 
     beforeEach(async (done) => {
-        testDoublePlugin = new TestDoublePlugin(false);
-        server = new TestServer(testDoublePlugin, 123456);
+        testDoublePlugin = new TestDoublePlugin();
+        server = new TestServer(testDoublePlugin, '123456');
         await server.initialize();
         done();
     });
@@ -25,7 +24,7 @@ describe('basic server test with test double server', () => {
         return testDoublePlugin
             .testEndpoint(
                 request.endpointMetadata.verb,
-                request.endpointMetadata.path,
+                request.endpointMetadata.route.path,
                 request
             )
             .then((response: IQNodeResponse) => {

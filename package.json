@@ -8,7 +8,7 @@
         "prepublish": "npm run test && npm run build",
         "build": "npm run clear-build && tsc",
         "clear-build": "del-cli ./dist",
-        "test": "npm run clear-build && npx jest --runInBand --no-cache",
+        "test": "npm run clear-build && npx jest --runInBand --no-cache && jest-coverage-badges",
         "beautify": "npx prettier --write .",
         "doc": "npx typedoc"
     },
@@ -42,6 +42,10 @@
         "prettier": "2.0.5",
         "ts-jest": "^26.1.1",
         "typedoc": "^0.17.8",
+        "typedoc-umlclass": "^0.2.1",
         "typescript": "^3.9.6"
+    },
+    "dependencies": {
+        "jest-coverage-badges": "^1.1.2"
     }
 }

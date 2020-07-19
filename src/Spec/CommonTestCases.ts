@@ -1,43 +1,53 @@
 import fetch from 'node-fetch';
-import {
-    Endpoint,
-    IQNodeEndpoint, IQNodeMiddleware,
-    IQNodeRequest,
-    IQNodeResponse,
-    IQServerPlugin,
-    JSON_OBJECT,
-    QNodeRequest,
-    QNodeServerBase,
-} from '..';
+import {Endpoint, IQNodeRequest, IQNodeResponse, QNodeRequest, QNodeRoute, QNodeServerBase, QNodeUrl} from "..";
 
 export type fetchResponse = {
     status: number;
     body: any;
 };
 
-export const TEST_PORT = 65334;
-export const BASE_URL = `http://localhost:${TEST_PORT}`;
+export const TEST_PORT = '65334';
 
 const TEST_MIDDLEWARE /*: {[key: string]: IQNodeMiddleware}*/ = {
-    throwError: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
-        throw new Error("Test middleware throw error");
+    throwError: async (
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        carryValue: any,
+        next
+    ) => {
+        throw new Error('Test middleware throw error');
     },
-    nextError: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
-        next(new Error("Test middleware throw error in next"));
+    nextError: async (
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        carryValue: any,
+        next
+    ) => {
+        next(new Error('Test middleware throw error in next'));
     },
-    appendKeyToRequest: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
+    appendKeyToRequest: async (
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        carryValue: any,
+        next
+    ) => {
         request.body.json.newNumber = 17;
-        next({request});
+        next({ request });
     },
-    appendKeyToResponse: async (request: IQNodeRequest, response: IQNodeResponse, carryValue: any, next) => {
+    appendKeyToResponse: async (
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        carryValue: any,
+        next
+    ) => {
         response.body.newNumber = 17;
-        next({response});
+        next({ response });
     },
-}
+};
 
 const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
     randomColor: {
-        path: '/randomColor',
+        route: new QNodeRoute('/randomColor'),
         verb: 'get',
         contentType: [
             {
@@ -46,7 +56,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         ],
     },
     numberGet: {
-        path: '/number',
+        route: new QNodeRoute('/number'),
         verb: 'get',
         contentType: [
             {
@@ -55,7 +65,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         ],
     },
     numberPost: {
-        path: '/number',
+        route: new QNodeRoute('/number'),
         verb: 'post',
         contentType: [
             {
@@ -64,7 +74,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         ],
     },
     defaultErrorGet: {
-        path: '/defaultError',
+        route: new QNodeRoute('/defaultError'),
         verb: 'get',
         contentType: [
             {
@@ -73,7 +83,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         ],
     },
     errorHandlerGet: {
-        path: '/errorHandler',
+        route: new QNodeRoute('/errorHandler'),
         verb: 'get',
         contentType: [
             {
@@ -88,7 +98,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         },
     },
     middlewareThrowError: {
-        path: '/middlewareThrowError',
+        route: new QNodeRoute('/middlewareThrowError'),
         verb: 'get',
         middleware: [TEST_MIDDLEWARE.throwError],
         contentType: [
@@ -104,7 +114,7 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         },
     },
     middlewareNextError: {
-        path: '/middlewareNextError',
+        route: new QNodeRoute('/middlewareNextError'),
         verb: 'get',
         middleware: [TEST_MIDDLEWARE.nextError],
         contentType: [
@@ -120,34 +130,47 @@ const TEST_ENDPOINTS /*: { [key: string]: IQNodeEndpoint }*/ = {
         },
     },
     middlewareRequestAppendKey: {
-        path: '/middlewareRequestAppendKey',
+        route: new QNodeRoute('/middlewareRequestAppendKey'),
         verb: 'get',
         middleware: [TEST_MIDDLEWARE.appendKeyToRequest],
         contentType: [
             {
                 type: 'application/json',
             },
-        ]
+        ],
     },
     middlewareResponseAppendKey: {
-        path: '/middlewareResponseAppendKey',
+        route: new QNodeRoute('/middlewareResponseAppendKey'),
         verb: 'get',
         middleware: [TEST_MIDDLEWARE.appendKeyToResponse],
         contentType: [
             {
                 type: 'application/json',
             },
-        ]
+        ],
     },
     middlewareRequestResponseAppendKey: {
-        path: '/middlewareRequestResponseAppendKey',
+        route: new QNodeRoute('/middlewareRequestResponseAppendKey'),
         verb: 'get',
-        middleware: [TEST_MIDDLEWARE.appendKeyToRequest, TEST_MIDDLEWARE.appendKeyToResponse],
+        middleware: [
+            TEST_MIDDLEWARE.appendKeyToRequest,
+            TEST_MIDDLEWARE.appendKeyToResponse,
+        ],
         contentType: [
             {
                 type: 'application/json',
             },
-        ]
+        ],
+    },
+    routeParam: {
+        route: new QNodeRoute('/route/:path'),
+        verb: 'get',
+        middleware: [],
+        contentType: [
+            {
+                type: 'application/json',
+            },
+        ],
     }
 };
 
@@ -172,7 +195,7 @@ export class TestServer extends QNodeServerBase {
             statusCode: 200,
             body: {
                 number:
-                    this.numberFromPost + parseInt(request.params.number + ''),
+                    this.numberFromPost + parseInt(request.query.number + ''),
             },
         };
     }
@@ -203,7 +226,6 @@ export class TestServer extends QNodeServerBase {
         throw new Error('Error handler test endpoint');
     }
 
-
     @Endpoint(TEST_ENDPOINTS.middlewareThrowError)
     private async middlewareThrowError() {
         return {
@@ -221,7 +243,11 @@ export class TestServer extends QNodeServerBase {
     }
 
     @Endpoint(TEST_ENDPOINTS.middlewareRequestAppendKey)
-    private async middlewareRequestAppendKey(request: IQNodeRequest, response: IQNodeResponse, middlewareCarryValue: any) {
+    private async middlewareRequestAppendKey(
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        middlewareCarryValue: any
+    ) {
         return {
             statusCode: 200,
             body: {},
@@ -229,7 +255,11 @@ export class TestServer extends QNodeServerBase {
     }
 
     @Endpoint(TEST_ENDPOINTS.middlewareResponseAppendKey)
-    private async middlewareResponseAppendKey(request: IQNodeRequest, response: IQNodeResponse, middlewareCarryValue: any) {
+    private async middlewareResponseAppendKey(
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        middlewareCarryValue: any
+    ) {
         return {
             statusCode: 200,
             body: response.body,
@@ -237,10 +267,26 @@ export class TestServer extends QNodeServerBase {
     }
 
     @Endpoint(TEST_ENDPOINTS.middlewareRequestResponseAppendKey)
-    private async middlewareRequestResponseAppendKey(request: IQNodeRequest, response: IQNodeResponse, middlewareCarryValue: any) {
+    private async middlewareRequestResponseAppendKey(
+        request: IQNodeRequest,
+        response: IQNodeResponse,
+        middlewareCarryValue: any
+    ) {
         return {
             statusCode: 200,
             body: response.body,
+        };
+    }
+
+    @Endpoint(TEST_ENDPOINTS.routeParam)
+    private async routeParam(
+        request: IQNodeRequest
+    ) {
+        return {
+            statusCode: 200,
+            body: {
+                path: request.params.path
+            }
         };
     }
 }
@@ -251,11 +297,14 @@ export function DEFINE_COMMON_TEST_CASES(
 ) {
     it('should execute getRandomColor when endpoint is triggered', async (done) => {
         const testRequest: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.randomColor.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.randomColor.route.path,
+                query: ""
+            }),
+            query: {},
             body: {
                 raw: '',
             },
@@ -276,11 +325,14 @@ export function DEFINE_COMMON_TEST_CASES(
             number: 17,
         };
         const postRequest: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.numberPost.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.numberPost.route.path,
+                query: ""
+            }),
+            query: {},
             body: {
                 raw: JSON.stringify(postBody),
                 json: { ...postBody },
@@ -305,18 +357,19 @@ export function DEFINE_COMMON_TEST_CASES(
             number: 14,
         };
         const getRequest: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.numberGet.path,
                 host: 'localhost',
-            },
+                port: TEST_PORT,
+                path:  TEST_ENDPOINTS.numberGet.route.path,
+                query: "?number="+getBody.number
+            }),
+            query: {},
             body: {
                 raw: '',
                 json: {},
             },
-            params: {
-                number: '' + getBody.number,
-            },
+            params: {},
             headers: {},
             endpointMetadata: TEST_ENDPOINTS.numberGet,
         });
@@ -325,11 +378,14 @@ export function DEFINE_COMMON_TEST_CASES(
             number: 17,
         };
         const postRequest: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.numberPost.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.numberPost.route.path,
+                query: ""
+            }),
+            query: {},
             body: {
                 raw: JSON.stringify(postBody),
                 json: { ...postBody },
@@ -359,18 +415,19 @@ export function DEFINE_COMMON_TEST_CASES(
             number: 12,
         };
         const getRequest: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.numberGet.path,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.numberGet.route.path,
+                query: "?number="+getBody.number,
+                port: TEST_PORT,
+            }),
+            query: {},
             body: {
                 raw: '',
                 json: {},
             },
-            params: {
-                number: '' + getBody.number,
-            },
+            params: {},
             headers: {},
             endpointMetadata: TEST_ENDPOINTS.numberGet,
         });
@@ -379,11 +436,14 @@ export function DEFINE_COMMON_TEST_CASES(
             number: 17,
         };
         const postRequest: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.numberPost.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.numberPost.route.path,
+                query: ""
+            }),
+            query: {},
             body: {
                 raw: JSON.stringify(postBody),
                 json: { ...postBody },
@@ -441,11 +501,14 @@ export function DEFINE_COMMON_TEST_CASES(
 
     it('should catch error on throw default error test endpoint and return 500 code', async (done) => {
         const request: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.defaultErrorGet.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.defaultErrorGet.route.path,
+                query: ""
+            }),
+            query: {},
             params: {},
             body: {
                 raw: '{}',
@@ -463,11 +526,14 @@ export function DEFINE_COMMON_TEST_CASES(
 
     it('should catch error with error handler', async (done) => {
         const request: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.errorHandlerGet.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.errorHandlerGet.route.path,
+                query: ""
+            }),
+            query: {},
             params: {},
             body: {
                 raw: '{}',
@@ -485,11 +551,14 @@ export function DEFINE_COMMON_TEST_CASES(
 
     it('should execute single throwError middleware', async (done) => {
         const request: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.middlewareThrowError.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.middlewareThrowError.route.path,
+                query: ""
+            }),
+            query: {},
             params: {},
             body: {
                 raw: '{}',
@@ -507,11 +576,14 @@ export function DEFINE_COMMON_TEST_CASES(
 
     it('should execute single nextError middleware where error object is provided to "next"', async (done) => {
         const request: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.middlewareNextError.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.middlewareNextError.route.path,
+                query: ""
+            }),
+            query: {},
             params: {},
             body: {
                 raw: '{}',
@@ -529,11 +601,14 @@ export function DEFINE_COMMON_TEST_CASES(
 
     it('should update response object if middleware changes values', async (done) => {
         const request: IQNodeRequest = new QNodeRequest({
-            url: {
+            url: new QNodeUrl({
                 protocol: 'http',
-                full: BASE_URL + TEST_ENDPOINTS.middlewareResponseAppendKey.path,
+                port: TEST_PORT,
                 host: 'localhost',
-            },
+                path: TEST_ENDPOINTS.middlewareResponseAppendKey.route.path,
+                query: ""
+            }),
+            query: {},
             params: {},
             body: {
                 raw: '{}',
@@ -550,4 +625,33 @@ export function DEFINE_COMMON_TEST_CASES(
         done();
     });
 
+    it('should route a path based on path params (:path) in url', async (done) => {
+        const TESTS = ['location', 'blue', 'green', 'test'];
+        for (let i=0; i<TESTS.length; i++) {
+            const test = TESTS[i];
+            const request: IQNodeRequest = new QNodeRequest({
+                url: new QNodeUrl({
+                    protocol: 'http',
+                    port: TEST_PORT,
+                    host: 'localhost',
+                    path: TEST_ENDPOINTS.routeParam.route.path.replace(":path", test),
+                    query: ""
+                }),
+                query: {},
+                params: {},
+                body: {
+                    raw: '{}',
+                    json: {},
+                },
+                headers: {
+                    'content-type': 'application/json',
+                },
+                endpointMetadata: TEST_ENDPOINTS.routeParam,
+            });
+            const response: fetchResponse = await sendRequest(request);
+            expect(response.status).toBe(200);
+            expect(response.body.path).toBe(test);
+        }
+        done();
+    });
 }

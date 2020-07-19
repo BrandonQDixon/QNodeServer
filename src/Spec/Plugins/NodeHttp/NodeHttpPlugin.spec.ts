@@ -1,5 +1,4 @@
 import {
-    BASE_URL,
     DEFINE_COMMON_TEST_CASES,
     fetchResponse,
     TEST_PORT,
@@ -40,7 +39,7 @@ describe('basic server test with test double server', () => {
                 } catch (err) {
                     console.warn(
                         'Error parsing json response body in http plugin test case',
-                        {body},
+                        { body },
                         err
                     );
                     body = {};
@@ -51,17 +50,21 @@ describe('basic server test with test double server', () => {
                 };
             };
 
+            const handleError = (err) => {
+                throw new Error("Error in NodeHttpPlugin spec for url " + request.url.full + " : " + err);
+            }
+
             if (request.endpointMetadata.verb === 'get') {
                 return fetch(request.url.full, {
                     method: request.endpointMetadata.verb,
                     headers: request.headers || {},
-                }).then(mapResponse);
+                }).then(mapResponse).catch(handleError);
             }
             return fetch(request.url.full, {
                 method: request.endpointMetadata.verb,
                 headers: request.headers || {},
                 body: request.body.raw,
-            }).then(mapResponse);
+            }).then(mapResponse).catch(handleError);;
         }
     );
 });

@@ -3,6 +3,8 @@ import { IQNodeEndpoint } from '../../Models/IQNodeEndpoint';
 import { IQNodeRequest } from '../../Models/IQNodeRequest';
 import { IQNodeResponse } from '../../Models/IQNodeResponse';
 import { JSON_OBJECT } from '../../Models/IJson';
+import {QNodeRequest} from "../..";
+import {CloneInputObj} from "../../Util/Object/CloneObject";
 
 interface ICallableEndpoint {
     metadata: IQNodeEndpoint;
@@ -15,24 +17,18 @@ interface ICallableEndpoint {
  */
 export class TestDoublePlugin implements IQServerPlugin {
     private endpoints: Array<ICallableEndpoint> = [];
+    private serverIsOn = false;
 
-    constructor(private doLog: boolean = false) {}
-
-    private consoleOut(...args: Array<any>): void {
-        if (this.doLog) {
-            console.log('TestDoublePlugin ==> ', ...args);
-        }
-    }
+    constructor() {}
 
     async createEndpoint(
         endpoint: IQNodeEndpoint,
         endpointTriggeredCallback: (rawRequest: any) => any
     ) {
-        this.consoleOut('Creating endpoint: ', endpoint);
 
-        if (!endpoint.verb || !endpoint.path) {
+        if (!endpoint.verb || !endpoint.route.path) {
             throw new Error(
-                `Error in creating endpoint for TestDouble: verb / path input is falsey: verb: ${endpoint.verb} => path: ${endpoint.path}`
+                `Error in creating endpoint for TestDouble: verb / path input is falsey: verb: ${endpoint.verb} => path: ${endpoint.route.path}`
             );
         }
 
@@ -49,13 +45,17 @@ export class TestDoublePlugin implements IQServerPlugin {
     async testEndpoint(
         verb: string,
         path: string,
-        rawRequest: IQNodeRequest<JSON_OBJECT>
+        @CloneInputObj rawRequest: IQNodeRequest<JSON_OBJECT>
     ): Promise<IQNodeResponse> {
-        this.consoleOut('Testing endpoint: ', verb, path);
+        if (!this.serverIsOn) {
+            throw new Error("Test endpoint was triggered without initializing the server!");
+        }
+
+        const request = new QNodeRequest(rawRequest);
 
         const endpoint = this.endpoints.find(
             (route) =>
-                route.metadata.verb === verb && route.metadata.path === path
+                route.metadata.verb === verb && route.metadata.route.urlMatches(path)
         );
         if (!endpoint) {
             throw new Error(
@@ -65,7 +65,7 @@ export class TestDoublePlugin implements IQServerPlugin {
 
         let result: IQNodeResponse;
         try {
-            result = await endpoint.callback(rawRequest);
+            result = await endpoint.callback(request);
         } catch (err) {
             throw new Error('test error: ' + err);
         }
@@ -76,11 +76,11 @@ export class TestDoublePlugin implements IQServerPlugin {
         return rawRequest;
     }
 
-    async startServer(port: number) {
-        //stub, since this is not a real server
+    async startServer(port: string) {
+        this.serverIsOn = true;
     }
 
     async stopServer() {
-        //stub, since this is not a real server
+        this.serverIsOn = false;
     }
 }

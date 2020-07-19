@@ -13,7 +13,7 @@ export interface IQServerPlugin {
 
     mapRequest(rawRequest: any): Promise<IQNodeRequest>;
 
-    startServer(port: number): Promise<void>;
+    startServer(port: string): Promise<void>;
 
     stopServer(): Promise<void>;
 }

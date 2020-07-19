@@ -1,6 +1,11 @@
+/**
+ * Deep clone an object literal
+ * @param input
+ * @constructor
+ */
 export function CloneObject(input) {
     if (Array.isArray(input)) {
-        return input.map(item => CloneObject(item));
+        return input.map((item) => CloneObject(item));
     }
     if (typeof input === 'object') {
         return Object.keys(input).reduce((obj, key) => {
@@ -11,6 +16,13 @@ export function CloneObject(input) {
     return input;
 }
 
+/**
+ * Parameter decorator to deep clone an argument object literal as it is passed into the method
+ * @param target
+ * @param propertyKey
+ * @param parameterIndex
+ * @constructor
+ */
 export function CloneInputObj(
     target: Object,
     propertyKey: string | symbol,

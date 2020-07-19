@@ -1,14 +1,6 @@
 import http, { RequestListener } from 'http';
 import url from 'url';
-
-import { IQServerPlugin } from '../../Models/IQServerPlugin';
-import {
-    IQNodeConcreteEndpoint,
-    IQNodeEndpoint,
-    QNodeEndpoint,
-} from '../../Models/IQNodeEndpoint';
-import { IQNodeRequest } from '../../Models/IQNodeRequest';
-import { IQNodeResponse } from '../../Models/IQNodeResponse';
+import {IQNodeConcreteEndpoint, IQNodeRequest, IQNodeResponse, IQServerPlugin, QNodeEndpoint, QNodeUrl} from "../..";
 
 interface ICallableEndpoint {
     metadata: QNodeEndpoint;
@@ -34,7 +26,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
         };
         this.endpointRoutes.push(newEndpoint);
         this.endpointRoutes.sort((a, b) => {
-            return b.metadata.path.localeCompare(a.metadata.path);
+            return b.metadata.route.path.localeCompare(a.metadata.route.path);
         });
     }
 
@@ -50,25 +42,30 @@ export class NodeHttpPlugin implements IQServerPlugin {
         });
 
         try {
+            const urlParts = url.parse(rawRequest.url);
+
+            const endpointMetadata = this.endpointRoutes.find(endpoint => {
+                return endpoint.metadata.route.urlMatches(urlParts.pathname);
+            });
+            if (!endpointMetadata) {
+                throw new Error("Could not find endpoint metadata for path: " + urlParts.path);
+            }
+
             return {
-                url: {
-                    protocol: rawRequest.protocol,
-                    host: rawRequest.host,
-                    full:
-                        rawRequest.protocol +
-                        '://' +
-                        rawRequest.host +
-                        rawRequest.url,
-                },
-                params: { ...url.parse(rawRequest.url, true).query },
+                url: new QNodeUrl({
+                    protocol: urlParts.protocol,
+                    host: urlParts.host,
+                    path: urlParts.pathname,
+                    query: urlParts.query,
+                    port: urlParts.port
+                }),
+                query: {...url.parse(rawRequest.url, true).query},
+                params: {} ,
                 body: {
                     raw: rawBody,
                 },
                 headers: rawRequest.headers,
-                endpointMetadata: {
-                    verb: rawRequest.method,
-                    path: rawRequest.url,
-                },
+                endpointMetadata: endpointMetadata.metadata,
             };
         } catch (err) {
             const message =
@@ -79,7 +76,7 @@ export class NodeHttpPlugin implements IQServerPlugin {
         }
     }
 
-    async startServer(port: number): Promise<void> {
+    async startServer(port: string): Promise<void> {
         this.serverInstance = http.createServer(this.getRequestHandler());
         return new Promise((resolve, reject) => {
             this.serverInstance.listen(port, (err) => {
@@ -116,15 +113,17 @@ export class NodeHttpPlugin implements IQServerPlugin {
             );
 
             rawResponse.statusCode = result.statusCode;
-            rawResponse.write(Buffer.from(result.stringBody || ""));
+            rawResponse.write(Buffer.from(result.stringBody || ''));
             rawResponse.end();
         };
     }
 
     private getRequestEndpoint(request: any): IQNodeConcreteEndpoint {
+        const urlParts = url.parse(request.url);
+
         return this.endpointRoutes.find((route) => {
             return (
-                request.url.indexOf(route.metadata.path) === 0 &&
+                route.metadata.route.urlMatches(urlParts.pathname) &&
                 request.method.toLowerCase() === route.metadata.verb
             );
         });
