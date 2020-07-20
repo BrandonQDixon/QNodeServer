@@ -1,6 +1,6 @@
 {
     "name": "q-node-server-api",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "description": "API abstraction for creating and maintaining Node.js servers",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -43,9 +43,8 @@
         "ts-jest": "^26.1.1",
         "typedoc": "^0.17.8",
         "typedoc-umlclass": "^0.2.1",
-        "typescript": "^3.9.6"
-    },
-    "dependencies": {
+        "typescript": "^3.9.6",
         "jest-coverage-badges": "^1.1.2"
-    }
+    },
+    "dependencies": {}
 }
