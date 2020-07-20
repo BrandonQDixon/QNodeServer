@@ -1,4 +1,4 @@
-import { IQNodeConcreteEndpoint, IQNodeEndpoint } from './IQNodeEndpoint';
+import { IQNodeConcreteEndpoint } from "../QNodeServer/QNodeEndpoint";
 
 export interface IQNodeServer {
     endpoints: Array<IQNodeConcreteEndpoint>;
